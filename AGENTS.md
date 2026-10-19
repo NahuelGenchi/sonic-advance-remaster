@@ -25,7 +25,8 @@ Never describe something as working unless a recorded build or run establishes i
 
 - `gh issue list --repo NahuelGenchi/sonic-advance-remaster --state open` lists the work.
 - `git switch -c <type>/<issue>-<slug> origin/main` starts a work item.
-- Source and port checks: none live in this repository yet. M1 records the upstream build and the capture path in `docs/CAPTURE.md`.
+- Source and port checks: the upstream build and the capture path are recorded in `docs/CAPTURE.md`; the port sources themselves are not in this repository.
+- Capture review: `python3 tools/make_contact_sheet.py <capture-dir> <sheet-dir>` tiles a run into labeled sheets.
 
 ## Working well here
 
