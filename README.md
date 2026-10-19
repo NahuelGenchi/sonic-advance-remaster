@@ -6,7 +6,7 @@
     the zones you know, at 426×240, with a new renderer and lighting still to come.
   </p>
   <p>
-    <img src="https://img.shields.io/badge/status-M1%20%C2%B7%20native%20ports-d9902f?style=flat-square" alt="Status: M1, native ports">
+    <img src="https://img.shields.io/badge/status-M1%20complete-2e9e6b?style=flat-square" alt="Status: M1 complete">
     <img src="https://img.shields.io/badge/base-SAT--R%20decompilation-1f6feb?style=flat-square" alt="Base: SAT-R decompilation">
     <img src="https://img.shields.io/badge/platform-Linux-4f79e4?style=flat-square&logo=linux&logoColor=white" alt="Platform: Linux">
     <img src="https://img.shields.io/badge/ROMs-bring%20your%20own-d29922?style=flat-square" alt="ROMs: bring your own">
@@ -84,14 +84,14 @@ Sonic Advance Remaster is a native desktop remaster of Sonic Advance 1 and Sonic
 
 The repository owns the remaster layer: the renderer, the lighting, the build and packaging, and the documentation. Upstream is unlicensed, so it is never vendored here. You clone it outside this repository, supply your own ROMs and build, as described in [Build and capture](#build-and-capture).
 
-What exists today is the foundation and the first real frames. The remaster renderer is the next milestone.
+What exists today is the foundation, the first real frames, and verified windowed runs with audio. The remaster renderer is the next milestone.
 
 ## Status
 
 | Milestone | State | What it covers |
 | :--- | :--- | :--- |
 | **M0 — Project foundation** | Complete | Repository, tracking system, agent instructions, templates and the capture path |
-| **M1 — Native ports running** | In progress | Both ports build and capture headlessly. Interactive windowed runs and audio are not recorded yet |
+| **M1 — Native ports running** | Complete | Both ports build, run windowed and headless, with keyboard input, audio and a documented capture path |
 | **M2 — Renderer and lighting** | Planned | Subpixel camera, shader presentation, upscaled assets and 2.5D lighting |
 | **M3 — Release** | Planned | Packaging and the first public build |
 
@@ -111,7 +111,7 @@ When each of those is captured from a build, it will appear on this page. Until 
 
 ## Build and capture
 
-The remaster sources are not in this repository yet. What exists today is the upstream port, a documented headless capture path, and the frames above.
+The remaster sources are not in this repository yet. What exists today is the upstream port, a documented headless capture path, verified windowed runs with audio, and the frames above.
 
 ```sh
 git clone https://github.com/SAT-R/sa2 /tmp/sa2
@@ -123,7 +123,7 @@ make -j"$(nproc)" sdl GAME_NAME=sa1
 make -j"$(nproc)" sdl GAME_NAME=sa2 TAS_TESTING=1
 ```
 
-`TAS_TESTING=1` builds the SA2 port with its recorded input tape, which is how the SA2 captures were made without a keyboard. The full recipe, the local capture hook, the environment variables and the frame behind every image are in [docs/CAPTURE.md](docs/CAPTURE.md).
+`TAS_TESTING=1` builds the SA2 port with its recorded input tape, which is how the SA2 captures were made without a keyboard; a build without it is what the interactive window check uses. The full recipe, the local capture hook, the environment variables and the frame behind every image are in [docs/CAPTURE.md](docs/CAPTURE.md).
 
 Upstream is unlicensed and its maintainers do not accept LLM-assisted contributions. It stays outside this repository, and nothing here is proposed back.
 

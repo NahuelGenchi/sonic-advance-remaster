@@ -174,6 +174,76 @@ HEADLESS=true CAPTURE_DIR=/tmp/cap_sa1gif CAPTURE_SCRIPT=sa1 CAPTURE_EVERY=2 CAP
 The script advances the boot, title and menus, then holds right and jumps. The
 first file is written at frame 0, so the run also records the logos.
 
+## Interactive runs and audio
+
+The captures above are headless. The same ports also open a normal window with
+keyboard input and audio; this is the record of that path, checked on 2026-10-19
+on a Wayland desktop through XWayland.
+
+### Window and input
+
+```sh
+cd /tmp/sa2
+./sa1.sdl
+./sa2.sdl   # built without TAS_TESTING for this check
+```
+
+Both binaries create a resizable 426x240 SDL window titled `sa1.sdl` /
+`sa2.sdl`. The default renderer is OpenGL (a local, uncommitted
+`SDL_GetRendererInfo` print reports `opengl`); the port falls back to another
+renderer if it cannot be created. The client window observed under mutter was
+426x240 inside a 482x328 decorated frame.
+
+The machine had no `xdotool`, `ffmpeg` or screenshot CLI, and GNOME Shell's
+`ScreenshotWindow` D-Bus method answered `AccessDenied`. A local helper (Python
+ctypes over libX11 and libXtst, not committed) found the client window, raised
+and focused it, read it with `XGetImage`, sent START (Return) and A (C) with
+`XTestFakeKeyEvent`, and closed it with a `WM_DELETE_WINDOW` client message.
+Force `SDL_RENDER_DRIVER=software` if the accelerated window does not read back
+cleanly; the game frames are the same.
+
+The port's own polled-key log, a local uncommitted print in
+`Platform_GetKeyInput`, recorded `keys 0008` for START and `keys 0001` for A
+when the presses arrived. Both ports received the keys and exited with status 0
+when the window was closed.
+
+The normal SA2 build plays attract demos, and a `TAS_TESTING=1` build starts
+the recorded tape at boot, so in both cases the game can be reading recorded
+input while the window is open; screen changes alone do not prove keyboard
+input. This check used a build without `TAS_TESTING` and treats the key log as
+the evidence: `Platform_GetKeyInput` is the function the port writes to
+`REG_KEYINPUT`, and it logged the START and A states as the presses arrived.
+The SA1 window shows the same title and menu corruption as the headless frames
+([upstream issue #274](https://github.com/SAT-R/sa2/issues/274)).
+
+### Audio
+
+Audio was captured from SDL's own output with its disk driver, so nothing went
+to the system mixer:
+
+```sh
+SDL_AUDIODRIVER=disk SDL_DISKAUDIOFILE=/tmp/sa1.raw ./sa1.sdl
+SDL_AUDIODRIVER=disk SDL_DISKAUDIOFILE=/tmp/sa2.raw ./sa2.sdl
+```
+
+The port requests 48 kHz, signed 16-bit, stereo in `SDL_OpenAudio`. The written
+streams were measured with NumPy:
+
+| Port and run | Length | Peak | RMS | Outcome |
+| :--- | ---: | ---: | ---: | :--- |
+| SA1, windowed, no input | 31.52 s | 0.1188 | 0.0124 | silent boot; audio from about 17 s, 44% non-zero samples |
+| SA2, windowed, default renderer | 13.53 s | 0.1534 | 0.0268 | continuous music and effects |
+
+The recordings contain Sega music and stay outside the repository; only these
+measurements are committed.
+
+### What this does not cover
+
+- The window check is Linux/Wayland through XWayland only; a native Wayland,
+  Windows or macOS run was not recorded.
+- Input was injected through XTest; no physical keyboard or gamepad was used.
+- Audio was measured from the stream, not monitored on speakers.
+
 ## Committed images
 
 | File | Source | Scene |
