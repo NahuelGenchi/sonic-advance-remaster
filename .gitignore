@@ -1,0 +1,30 @@
+# Local workspace: ROMs, BIOS files, saves and unpacked archives never belong in git.
+.local/
+
+# ROM images and save files, wherever they are produced.
+*.gba
+*.agb
+baserom_*.gba
+*.sav
+*.sa1
+*.sa2
+
+# Port builds (the upstream Makefile output).
+build/
+*.sdl
+*.sdl.elf
+*.elf
+*.map
+sa1.sdl
+sa2.sdl
+
+# Raw capture frames and clips; curated images are committed deliberately.
+*.ppm
+*.mp4
+*.webm
+
+# Tooling scratch.
+__pycache__/
+*.pyc
+.venv/
+dist/
