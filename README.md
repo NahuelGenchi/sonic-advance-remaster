@@ -109,6 +109,8 @@ The remaster layer is the M2 work, and none of it is in the repository yet:
 
 When each of those is captured from a build, it will appear on this page. Until then, this section is a plan, not a claim.
 
+The architecture and the never-vendored build boundary are recorded in [docs/RENDERER.md](docs/RENDERER.md). That document is a research decision; the renderer itself is not implemented yet.
+
 ## Build and capture
 
 The remaster sources are not in this repository yet. What exists today is the upstream port, a documented headless capture path, verified windowed runs with audio, and the frames above.
