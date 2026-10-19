@@ -209,8 +209,8 @@ Both review tools require Pillow (`python3 -m pip install pillow`).
 ## Limitations
 
 - The SA1 port is early: menus and some UI render corrupted in the upstream
-  build (upstream issue #274), and the HUD is not visible in these captures.
-  Only clean scenes were kept.
+  build ([upstream issue #274](https://github.com/SAT-R/sa2/issues/274)), and
+  the HUD is not visible in these captures. Only clean scenes were kept.
 - The SA1 run depends on the scripted schedule; a change in the port's boot
   timing can shift the frame numbers.
 - The SA2 tape recorded a full any% run; its zone order and frame numbers are
