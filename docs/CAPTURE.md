@@ -268,6 +268,24 @@ is filtered, sharpened, cropped, or recolored. Clips were assembled from
 consecutive PPM frames with Pillow at 30 fps and a 96-colour palette, with no
 other changes.
 
+## Stage 0 host capture
+
+The stage 0 host in [tools/stage0/README.md](../tools/stage0/README.md) uses a
+different capture path from the M1 headless hook. It writes the software PPU
+frame and a GL back-buffer readback after drawing the frame and before the
+buffer swap:
+
+```sh
+SDL_VIDEODRIVER=x11 SDL_AUDIODRIVER=dummy SAR_VSYNC=0 \
+SAR_CAPTURE_DIR=/tmp/sar-stage0/capture SAR_CAPTURE_FRAME=1200 \
+SAR_EXIT_AFTER_FRAME=1200 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav \
+/tmp/sar-stage0/sa2-stage0
+```
+
+`SAR_VSYNC=0` uses the host's 60 Hz clock, so an occluded window cannot throttle
+the recorded run. The capture is verification output; curated images still come
+from the M1 capture path.
+
 ## Review the captures
 
 ```sh

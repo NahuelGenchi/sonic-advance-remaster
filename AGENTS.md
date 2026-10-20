@@ -4,7 +4,7 @@
 
 Sonic Advance Remaster is a native fan remaster of Sonic Advance 1 & 2, built from the SAT-R decompilation (`SAT-R/sa2`): widescreen, high-refresh rendering, shader-based visual upgrades and 2.5D lighting on top of the decompiled game logic. The games run from the user's own ROM dumps; no ROM, BIOS file, save or extracted asset is ever part of this repository.
 
-Phases, in order: **M0** the repository foundation and tracking system; **M1** both ports (Sonic Advance 1 Europe, Sonic Advance 2 USA) building and running from source with a documented capture path; **M2** the remaster renderer and lighting; **M3** packaging and the first release. Status: the port and the renderer are not committed yet; do not describe planned work as present.
+Phases, in order: **M0** the repository foundation and tracking system; **M1** both ports (Sonic Advance 1 Europe, Sonic Advance 2 USA) building and running from source with a documented capture path; **M2** the remaster renderer and lighting; **M3** packaging and the first release. Status: the upstream game port and the remaster renderer are not committed; the stage 0 host in `remaster/host/` is. Do not describe planned work as present.
 
 It is an unofficial fan project, not affiliated with Sega. The project's own files are GPL-3.0-or-later (`LICENSE`). Upstream `SAT-R/sa2` has no license and a strict no-LLM contributions policy: work produced here, with or without AI assistance, stays in this repository and is never proposed upstream. Never vendor upstream sources, assets or diffs into commits; keep upstream checkouts outside the repository (for example under `/tmp` or a sibling folder).
 
@@ -18,6 +18,7 @@ Never describe something as working unless a recorded build or run establishes i
 | `docs/TRACKING.md` | The issue → branch → milestone → PR rules |
 | `docs/CAPTURE.md` | How frames and clips are captured from a build (M1) |
 | `docs/images/` | Committed frames and clips, each captured from a recorded run |
+| `remaster/host/` | Project-owned stage 0 host: window, input, audio, save, GL context and software-frame presentation |
 | `tools/` | Project tooling (capture helpers, asset pipelines) as it lands |
 | `.local/` | The user's local ROMs and scratch data; git ignores it and it is never committed |
 
@@ -26,6 +27,7 @@ Never describe something as working unless a recorded build or run establishes i
 - `gh issue list --repo NahuelGenchi/sonic-advance-remaster --state open` lists the work.
 - `git switch -c <type>/<issue>-<slug> origin/main` starts a work item.
 - Source and port checks: the upstream build and the capture path are recorded in `docs/CAPTURE.md`; the port sources themselves are not in this repository.
+- Stage 0 host build: `SA2_UPSTREAM=<external-sa2> SAR_BUILD_ROOT=<external-build> tools/stage0/build.sh` validates the pin, snapshots upstream, archives the core and links the host. See `tools/stage0/README.md`.
 - Capture review: `python3 tools/make_contact_sheet.py <capture-dir> <sheet-dir>` tiles a run into labeled sheets.
 
 ## Working well here

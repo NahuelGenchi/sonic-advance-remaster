@@ -2,19 +2,22 @@
 
 [Back to README](../README.md) · [Tracking](TRACKING.md) · [Frame capture](CAPTURE.md) · [Issue #10](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/10)
 
-**Status:** research decision for M2. No remaster renderer is implemented and no
-game frame has been produced by it. The integration harness in
-[`tools/renderer_harness/`](../tools/renderer_harness/README.md) was built and
-run on 2026-10-19 against upstream `SAT-R/sa2` at
-`393357f7c9d46b5c10b6c41a57b80fe3b58f3c8d`; that proves the build boundary, not
-the renderer.
+**Status:** architecture decision for M2, with the stage 0 host implemented. The
+host in `remaster/host/` replaces the upstream SDL platform, creates a GL 3.3
+core context and presents the upstream software PPU frame at 426x240. It is not
+the remaster renderer: no GPU layer path, high-refresh presentation, lighting
+or upscaled assets exist yet. The integration harness in
+[`tools/renderer_harness/`](../tools/renderer_harness/README.md) remains the
+minimum boundary proof; the stage 0 build driver is
+[`tools/stage0/build.sh`](../tools/stage0/build.sh).
 
 This document records the M2 architecture: the backend, the never-vendored
 integration mechanism, the subpixel and high-refresh presentation model, the
 shader stack, the 2.5D lighting depth model, performance targets, rejected
-options, risks and the vertical-slice plan. It is intentionally specific enough
-to implement, but everything beyond the verified boundary harness is a plan
-until a recorded build and run say otherwise.
+options, risks and the vertical-slice plan. Stage 0 was verified on 2026-10-19
+against upstream `SAT-R/sa2` at
+`393357f7c9d46b5c10b6c41a57b80fe3b58f3c8d`; everything beyond that recorded run
+is still a plan.
 
 ## Decision summary
 
@@ -59,6 +62,27 @@ here:
   fills `gBgOffsetsHBlankPrimary` in `StageBgUpdate_Zone1Acts12`. A renderer
   that replaces the PPU must reproduce that scanline state; a simple
   full-screen quad cannot.
+
+Stage 0 now replaces the presentation owner without replacing the game:
+
+- `tools/stage0/build.sh` validates the external checkout, snapshots it with
+  `git archive`, builds the upstream `sdl` objects, archives every object except
+  `src/platform/pret_sdl/sdl2.o`, and links the project host from
+  `remaster/host/`.
+- The host owns `main`, the SDL window and events, the keyboard state,
+  `Platform_GetKeyInput`, `Platform_QueueAudio`, the save file,
+  `VBlankIntrWait` and `Platform_StoreSaveFile`. It creates a GL 3.3 core
+  context with `SDL_GL_CreateContext`, converts `gameImage` from ABGR1555 to
+  RGBA8, uploads it to a texture, and draws one nearest-sampled quad at 426x240
+  with integer letterboxing. The only shader is the present shader; there is no
+  scene shader stack.
+- The 60 Hz game tick is unchanged. Stage 0 paces presentation to 60 Hz and does
+  not implement the decoupled high-refresh scheduler. `SAR_VSYNC=0` disables
+  FIFO for deterministic recorded runs; the host then uses its own 60 Hz clock.
+- The recorded run used Sonic Advance 2 (USA) and the `TAS_TESTING=1` tape.
+  Tape frame 1200 matches the committed M1 capture exactly, and the GL back-buffer
+  readback has the same SHA-256 as the software frame. The exact commands and
+  outcomes belong in the stage 0 delivery record.
 
 The upstream tree also contains an experimental OpenGL renderer for Win32
 (`src/platform/win32/opengl.c`). It is Windows-only, fixed-function-era code,
@@ -108,10 +132,10 @@ effects are optional and off in the vertical slice.
   changes only the projection and sampling, never game state.
 - Refresh rate is read from the current display mode. The host supports 60, 120
   and 144 Hz first; 75/90 Hz and VRR are follow-ups.
-- Vsync is requested with `SDL_GL_SetSwapInterval(1)` (FIFO). A `--no-vsync`
-  mode uses the same frame scheduler without blocking, for pacing experiments.
-  `SDL_GL_SetSwapInterval(-1)` (adaptive) is optional and only used when the
-  driver reports it.
+- Vsync is requested with `SDL_GL_SetSwapInterval(1)` (FIFO). The stage 0 host
+  accepts `SAR_VSYNC=0` for recorded runs and uses its 60 Hz clock instead; a
+  later CLI can expose the same as `--no-vsync`. `SDL_GL_SetSwapInterval(-1)`
+  (adaptive) is optional and only used when the driver reports it.
 
 ## Never-vendored integration
 
@@ -140,22 +164,25 @@ sonic-advance-remaster/                    /path/to/sa2/
 ├── docs/RENDERER.md                       ├── .git/
 ├── remaster/                              ├── src/
 │   ├── host/                              ├── include/
-│   ├── renderer/                          └── ...
-│   └── shaders/
+│   ├── renderer/  (stage 1+)              └── ...
+│   └── shaders/   (stage 1+)
 ├── tools/
 │   ├── upstream.pin
-│   └── renderer_harness/
+│   ├── renderer_harness/
+│   └── stage0/
 └── build/  (git-ignored objects)          /path/to/build-root/
                                            ├── source/        clean snapshot
-                                           ├── obj/           upstream objects
+                                           ├── host/          host objects
                                            ├── libsa2core.a   game core
-                                           └── remaster       host binary
+                                           ├── sa2-stage0     host binary
+                                           └── provenance.txt
 ```
 
 ### Build stages
 
-The full driver is planned for a follow-up M2 implementation issue; the harness
-implements the same boundary at minimum scale.
+The stage 0 driver implements steps 1-7 for Sonic Advance 2. The harness keeps
+the same boundary at minimum scale, and Sonic Advance 1 is not wired into the
+stage 0 driver yet.
 
 1. **Validate.** `SA2_UPSTREAM` must resolve to a git work tree outside this
    repository, `HEAD` must equal the pin, and tracked files must be clean. A
@@ -168,8 +195,10 @@ implements the same boundary at minimum scale.
    commit.
 3. **Build the reference port.** `make sdl GAME_NAME=sa2` (and `sa1` for the
    second port) in the snapshot produces the upstream objects and a reference
-   binary. This is the same build documented in `docs/CAPTURE.md`, with the
-   same pinned commit and the user's own ROMs.
+   binary. Stage 0 passes `TAS_TESTING=1` for the slice build. This is the same
+   build documented in `docs/CAPTURE.md`, with the same pinned commit and the
+   user's own ROM; the portable decomp build does not read the ROM, but the
+   driver validates it when `SA2_ROM` is supplied.
 4. **Archive the core.** `ar` collects the upstream objects except
    `src/platform/pret_sdl/sdl2.o`. The archive is the unmodified game logic,
    software PPU and shared platform helpers. The platform object is the only
@@ -178,9 +207,10 @@ implements the same boundary at minimum scale.
    this repository against the snapshot's `include/` directory, into the build
    root. Nothing from `remaster/` is copied into the upstream tree.
 6. **Link.** The host executable is linked from the host objects, the core
-   archive, `libagbsyscall`, SDL2 and the platform GL libraries, with `-lm`.
-   `-Wl,--no-undefined` is used so a missing platform symbol fails at link time,
-   not at runtime.
+   archive, `libagbsyscall` and SDL2, with `-lm`. GL entry points are loaded
+   through `SDL_GL_GetProcAddress`, so the stage 0 binary does not link `libGL`
+   directly. `-Wl,--no-undefined` is used so a missing platform symbol fails at
+   link time, not at runtime.
 7. **Run.** The host owns `main`, the window, the GL context, input, audio and
    save-file plumbing. It calls `AgbMain` from the core archive and provides
    `VBlankIntrWait`, `Platform_GetKeyInput`, `Platform_QueueAudio` and
@@ -593,6 +623,10 @@ into the first slice.
 | 3. Lighting | Depth/layer G-buffer, normal reconstruction, key/ambient/rim, Leaf Forest depth table and light rig. | Lighting on/off A/B is reviewed; no silhouette or readability regression; the effect can be disabled. |
 | 4. Performance and fallback | Quality presets, 1080p/4K runs, integrated-GPU check, software fallback. | Targets in this document are met on the recorded host or the gap and cause are documented. |
 
+Stage 0's exit check is recorded in the stage 0 delivery record: the tape frame
+matches the M1 capture and the host window, input and audio paths were run.
+Stages 1-4 remain open, so the renderer itself is still a plan.
+
 ### Slice non-goals
 
 - All zones, bosses, menus, special stages and multiplayer.
@@ -620,8 +654,10 @@ These are deliberately unresolved until the slice has data:
 2. Whether the first slice needs an OBJ-window mask or can defer windows until
    menus are in scope.
 3. Whether synchronous presentation inside `VBlankIntrWait` stays within the
-   tick budget, or a render thread is required.
-4. The GL loader: the SDL2 function table or generated glad2.
+   tick budget, or a render thread is required. Stage 0 uses synchronous present
+   at 60 Hz; that says nothing about the stage 1 GPU path.
+4. The GL loader beyond stage 0: the small SDL2 function table is enough for the
+   present shader, but the stage 1 stack may justify generated glad2.
 5. The default interpolation latency mode after #9 measures input-to-present.
 6. The zone depth-file format and who authors the per-sprite overrides.
 7. Whether upscaled assets are a runtime replacement pack or a build-time
@@ -651,9 +687,51 @@ harness: first=ffff last=ffff
 ```
 
 This is a compile/link/run check of the boundary and the software PPU, not a
-game renderer, a game frame or a performance measurement. The full port build,
-GPU context creation, shader compilation and lighting are not implemented in
-this research.
+game renderer, a game frame or a performance measurement.
+
+The stage 0 host is checked by:
+
+```sh
+SA2_UPSTREAM=/tmp/sa2 \
+SA2_ROM="$SA2_ROM" \
+SAR_BUILD_ROOT=/tmp/sar-stage0 \
+tools/stage0/build.sh
+```
+
+On 2026-10-19, with upstream at the pin, gcc 15.2.0, SDL2 2.32.10 and Mesa
+26.0.8 on the recorded Linux/X11 host, the driver validated the checkout,
+snapshotted it, built the upstream port, archived 520 core objects while
+excluding `platform/pret_sdl/sdl2.o`, and linked `sa2-stage0` with no missing
+symbols. The checkout's tracked files were unchanged after the build.
+
+The tape run used `SAR_VSYNC=0` so the host paced itself to 60 Hz instead of
+blocking on FIFO:
+
+```sh
+SDL_VIDEODRIVER=x11 SDL_AUDIODRIVER=dummy SAR_VSYNC=0 \
+SAR_CAPTURE_DIR=/tmp/sar-stage0/capture SAR_CAPTURE_FRAME=1200 \
+SAR_EXIT_AFTER_FRAME=1200 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav \
+/tmp/sar-stage0/sa2-stage0
+```
+
+The window reported `426x240` through `xwininfo`, and the run captured
+`frame_001200.ppm` and `frame_001200.gl.ppm`. Downscaling
+`docs/images/sa2-leaf-forest.png` from 852x480 to 426x240 with nearest-neighbour
+sampling and comparing both captures gave 0 differing pixels out of 102,240;
+both captures have SHA-256
+`134e4df9b462e85f0e7a1a54727beec0c449454a5706d5f64a5f9c7692a81110`. The GL
+readback matching the software frame is evidence for the upload/present path,
+not for a new renderer.
+
+Keyboard injection into the focused X11 window produced `keys=0008` (Return)
+and `keys=0001` (C) changes in the host key log, which is written by
+`Platform_GetKeyInput`. A 900-tick run with SDL's disk audio driver
+produced 15.55 s of audio with peak 5026, RMS 883.88 and 83.1% non-zero samples.
+
+Not measured or not implemented: any GPU layer rasterization, HBlank parity,
+subpixel interpolation, high-refresh schedule, lighting, audio latency,
+performance targets, Sonic Advance 1, or a Windows/macOS host. The stage 0 run
+does not validate the M2 renderer.
 
 ## References
 
@@ -668,9 +746,13 @@ this research.
   run record.
 - [`tools/renderer_harness/README.md`](../tools/renderer_harness/README.md): the
   boundary harness and its fail-closed checks.
+- [`tools/stage0/README.md`](../tools/stage0/README.md): the stage 0 build
+  driver, host and verification helpers.
 - [Issue #9](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/9):
   frame pacing, vsync and headroom baseline.
 - [Issue #10](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/10):
   this architecture decision.
+- [Issue #13](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/13):
+  the stage 0 host and build driver.
 - [GBATEK](https://problemkaputt.de/gbatek.htm): GBA PPU register and blending
   behaviour used for the parity work.
