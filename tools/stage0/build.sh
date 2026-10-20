@@ -169,6 +169,7 @@ sdl_cflags=($(sdl2-config --cflags))
 sdl_libs=($(sdl2-config --libs))
 common_flags=(
     -I"$snapshot/include"
+    -I"$repo_root/remaster"
     -DGAME=GAME_SA2
     -DUSA
     -DPLATFORM_GBA=0
@@ -183,14 +184,20 @@ common_flags=(
     -DRENDERER=RENDERER_SOFTWARE
 )
 host_flags=("${common_flags[@]}" -O2 -g -Wall -Wextra -Werror -std=gnu11 "${sdl_cflags[@]}")
+renderer_flags=("${common_flags[@]}" -O2 -g -Wall -Wextra -Werror -std=gnu11)
 
 mkdir -p "$build_root/host"
 printf 'stage0: compiling the host\n'
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/main.c" -o "$build_root/host/main.o"
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/present.c" -o "$build_root/host/present.o"
 
+printf 'stage0: compiling the BG-sprite composition module\n'
+"$CC" "${renderer_flags[@]}" -c "$repo_root/remaster/renderer/bg_sprites.c" -o "$build_root/host/bg_sprites.o"
+"$CC" "${renderer_flags[@]}" -c "$repo_root/remaster/renderer/bg_sprites_port.c" -o "$build_root/host/bg_sprites_port.o"
+
 printf 'stage0: linking the host against the core archive\n'
 "$CC" "$build_root/host/main.o" "$build_root/host/present.o" \
+    "$build_root/host/bg_sprites.o" "$build_root/host/bg_sprites_port.o" \
     "$core_archive" "$snapshot/libagbsyscall/build/sdl/libagbsyscall.a" \
     "${sdl_libs[@]}" -lm -Wl,--no-undefined -o "$build_root/sa2-stage0"
 
@@ -215,6 +222,10 @@ hash_file() {
     printf 'main.c=%s\n' "$(hash_file "$repo_root/remaster/host/main.c")"
     printf 'present.c=%s\n' "$(hash_file "$repo_root/remaster/host/present.c")"
     printf 'present.h=%s\n' "$(hash_file "$repo_root/remaster/host/present.h")"
+    printf 'bg_sprites.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites.c")"
+    printf 'bg_sprites.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites.h")"
+    printf 'bg_sprites_port.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites_port.c")"
+    printf 'bg_sprites_port.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites_port.h")"
     if [ -n "$rom" ]; then
         printf 'rom_sha1=%s\n' "$rom_sha1"
     fi
