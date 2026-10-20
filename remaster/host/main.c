@@ -28,6 +28,8 @@
 #include "renderer/bg_sprites_port.h"
 #include "renderer/layer_path.h"
 #include "renderer/snapshot.h"
+#include "renderer/ui_viewport.h"
+#include "renderer/ui_viewport_port.h"
 #include "script_input.h"
 
 extern void AgbMain(void);
@@ -519,9 +521,21 @@ void VBlankIntrWait(void)
     // PPU draws the frame.
     SarBgSpritesCompose();
 
-    // This matches the M1 headless order: handle the VBlank interrupt first,
-    // then render the frame, then count the VBlank.
-    if (renderer_gl) {
+    // The scene is the coordinate space of the frame. The engine's stage
+    // task is the engine's own statement of whether the 426x240 gameplay
+    // world is on screen, so it is what the viewport reads; the viewport
+    // never guesses the scene from the frame's contents.
+    sar_ui_viewport_set_scene(sar_ui_viewport_port_scene());
+
+    if (sar_ui_viewport_get_scene() == SAR_UI_SCENE_FIELD) {
+        // A UI field is composed at 240x160 from the engine state and then
+        // presented with one uniform scale and letterboxing. The gameplay
+        // world is not rendered for this frame, so no cropped gameplay frame
+        // is left behind when the scene changes.
+        sar_ui_viewport_port_render_field();
+        sar_ui_viewport_present(sar_ui_viewport_port_field(), gameImage, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        SarPresentFrame(gameImage, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    } else if (renderer_gl) {
         // The GPU layer path replaces the software PPU for this frame. It
         // captures its own snapshot at the same point and never presents a
         // frame it could not draw.
@@ -531,6 +545,8 @@ void VBlankIntrWait(void)
         }
         SarPresentGpuFrame(SarLayerPathSceneTexture(), DISPLAY_WIDTH, DISPLAY_HEIGHT);
     } else {
+        // This matches the M1 headless order: handle the VBlank interrupt
+        // first, then render the software PPU frame, then count the VBlank.
         gpsp_draw_frame(gameImage);
         SarPresentFrame(gameImage, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     }

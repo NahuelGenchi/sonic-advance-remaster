@@ -203,12 +203,17 @@ printf 'stage0: compiling the stage 1 layer path\n'
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/renderer/snapshot.c" -o "$build_root/host/snapshot.o"
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/renderer/gl_api.c" -o "$build_root/host/gl_api.o"
 
+printf 'stage0: compiling the UI viewport module\n'
+"$CC" "${renderer_flags[@]}" -c "$repo_root/remaster/renderer/ui_viewport.c" -o "$build_root/host/ui_viewport.o"
+"$CC" "${renderer_flags[@]}" -c "$repo_root/remaster/renderer/ui_viewport_port.c" -o "$build_root/host/ui_viewport_port.o"
+
 printf 'stage0: linking the host against the core archive\n'
 "$CC" "$build_root/host/main.o" "$build_root/host/present.o" \
     "$build_root/host/oam_bridge.o" "$build_root/host/script_input.o" \
     "$build_root/host/oam.o" \
     "$build_root/host/bg_sprites.o" "$build_root/host/bg_sprites_port.o" \
     "$build_root/host/layer_path.o" "$build_root/host/snapshot.o" "$build_root/host/gl_api.o" \
+    "$build_root/host/ui_viewport.o" "$build_root/host/ui_viewport_port.o" \
     "$core_archive" "$snapshot/libagbsyscall/build/sdl/libagbsyscall.a" \
     "${sdl_libs[@]}" -lm -Wl,--no-undefined -o "$build_root/sa2-stage0"
 
@@ -247,6 +252,10 @@ hash_file() {
     printf 'snapshot.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/snapshot.c")"
     printf 'gl_api.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/gl_api.c")"
     printf 'stage1_layers.h=%s\n' "$(hash_file "$repo_root/remaster/shaders/stage1_layers.h")"
+    printf 'ui_viewport.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/ui_viewport.c")"
+    printf 'ui_viewport.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/ui_viewport.h")"
+    printf 'ui_viewport_port.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/ui_viewport_port.c")"
+    printf 'ui_viewport_port.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/ui_viewport_port.h")"
     if [ -n "$rom" ]; then
         printf 'rom_sha1=%s\n' "$rom_sha1"
     fi
