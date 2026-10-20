@@ -182,15 +182,20 @@ common_flags=(
     -DENABLE_DECOMP_CREDITS=1
     -DRENDERER=RENDERER_SOFTWARE
 )
-host_flags=("${common_flags[@]}" -O2 -g -Wall -Wextra -Werror -std=gnu11 "${sdl_cflags[@]}")
+host_flags=("${common_flags[@]}" -O2 -g -Wall -Wextra -Werror -std=gnu11 -I"$repo_root/remaster" "${sdl_cflags[@]}")
 
 mkdir -p "$build_root/host"
 printf 'stage0: compiling the host\n'
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/main.c" -o "$build_root/host/main.o"
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/present.c" -o "$build_root/host/present.o"
+"$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/oam_bridge.c" -o "$build_root/host/oam_bridge.o"
+"$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/script_input.c" -o "$build_root/host/script_input.o"
+"$CC" "${host_flags[@]}" -c "$repo_root/remaster/renderer/oam.c" -o "$build_root/host/oam.o"
 
 printf 'stage0: linking the host against the core archive\n'
 "$CC" "$build_root/host/main.o" "$build_root/host/present.o" \
+    "$build_root/host/oam_bridge.o" "$build_root/host/script_input.o" \
+    "$build_root/host/oam.o" \
     "$core_archive" "$snapshot/libagbsyscall/build/sdl/libagbsyscall.a" \
     "${sdl_libs[@]}" -lm -Wl,--no-undefined -o "$build_root/sa2-stage0"
 
@@ -215,6 +220,12 @@ hash_file() {
     printf 'main.c=%s\n' "$(hash_file "$repo_root/remaster/host/main.c")"
     printf 'present.c=%s\n' "$(hash_file "$repo_root/remaster/host/present.c")"
     printf 'present.h=%s\n' "$(hash_file "$repo_root/remaster/host/present.h")"
+    printf 'oam_bridge.c=%s\n' "$(hash_file "$repo_root/remaster/host/oam_bridge.c")"
+    printf 'oam_bridge.h=%s\n' "$(hash_file "$repo_root/remaster/host/oam_bridge.h")"
+    printf 'script_input.c=%s\n' "$(hash_file "$repo_root/remaster/host/script_input.c")"
+    printf 'script_input.h=%s\n' "$(hash_file "$repo_root/remaster/host/script_input.h")"
+    printf 'oam.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/oam.c")"
+    printf 'oam.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/oam.h")"
     if [ -n "$rom" ]; then
         printf 'rom_sha1=%s\n' "$rom_sha1"
     fi

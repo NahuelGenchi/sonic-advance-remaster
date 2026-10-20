@@ -14,7 +14,7 @@ shows together at 426x240:
 | Scene | What the 426x240 port shows | Cause | Tested locally | Shipping status |
 | :--- | :--- | :--- | :--- | :--- |
 | Title, main menu, zone select | Art repeats at x >= 256 and the bottom 80 rows are garbage | 240x160 UI maps are sampled by a 426x240 viewport; the shared text-BG path also carries a SA2-specific 512-wide hack | 240x160 UI viewport | Not shipped; follow-up #15 |
-| Stage HUD | Rings, time and the character icon are missing | SA1 HUD writers use the 8-byte GBA `.all.attr*` view; the 426x240 build uses the 12-byte `.split` view | `EXTENDED_OAM FALSE` diagnostic | Not shipped; follow-up #14 |
+| Stage HUD | Rings, time and the character icon are missing | SA1 HUD writers use the 8-byte GBA `.all.attr*` view; the 426x240 build uses the 12-byte `.split` view | `EXTENDED_OAM FALSE` diagnostic | Canonical OAM bridge in the stage 0 host, [docs/OAM.md](OAM.md); the upstream port is unchanged |
 | Character select | Backdrop is stale, colourful garbage at 240x160 and 426x240 | The BG-sprite compositor is stubbed under `PORTABLE` and the text-BG map fill is disabled, so the backdrop map is never written | Fill the BG1 map with the animation's base tile | Not shipped; follow-up #16 |
 
 The first two are presentation faults in the port; the third is a port/
@@ -129,6 +129,12 @@ fix: it reduces the OAM entry size for every sprite and removes the separate
 16-bit coordinates that the widescreen path uses. The shipping fix is one
 canonical internal layout with an explicit adapter for both writer styles
 (follow-up #14).
+
+That adapter is [docs/OAM.md](OAM.md): one canonical entry, an explicit
+adapter for both writer styles at the engine/platform boundary, and a
+recorded stage 0 run in which the Sonic Advance 1 stage HUD is at its
+authored positions without the compile-time switch. The upstream port is
+unchanged, so the upstream build still shows the corrupted HUD.
 
 The upstream source already flags the area: `include/gba/types.h:100` says
 `TODO: EXTENDED_OAM is not yet functional`.

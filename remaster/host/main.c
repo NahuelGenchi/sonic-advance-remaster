@@ -23,7 +23,9 @@
 #include "platform/shared/audio/cgb_audio.h"
 #include "platform/shared/dma.h"
 #include "platform/shared/video/gpsp_renderer.h"
+#include "oam_bridge.h"
 #include "present.h"
+#include "script_input.h"
 
 extern void AgbMain(void);
 
@@ -404,6 +406,12 @@ void Platform_QueueAudio(const s16 *data, u32 numBytes)
 
 u16 Platform_GetKeyInput(void)
 {
+    if (SarScriptEnabled()) {
+        // A recorded run replays the documented capture script instead of
+        // the keyboard.
+        return (u16)SarScriptedKeys(frame_counter);
+    }
+
     if (key_log != NULL && keys != last_logged_keys) {
         fprintf(key_log, "frame=%llu keys=%04x\n", frame_counter, keys);
         fflush(key_log);
@@ -424,6 +432,11 @@ void VBlankIntrWait(void)
     REG_KEYINPUT = KEYS_MASK ^ Platform_GetKeyInput();
     REG_VCOUNT = DISPLAY_HEIGHT + 1;
     HandleVBlankInterrupts();
+
+    // The engine writes two OAM record layouts in the same build. The
+    // bridge converts the GBA-native ones into the extended layout the
+    // software PPU reads, and keeps the canonical table for the renderer.
+    SarOamBridgeCapture();
 
     // This matches the M1 headless order: handle the VBlank interrupt first,
     // then render the software PPU frame, then count the VBlank.
@@ -526,6 +539,8 @@ int main(void)
     printf("stage0: frame %dx%d, GL 3.3 core, 60 Hz tick\n", DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
     SaveOpen();
+    SarOamBridgeInit();
+    SarScriptInit();
     InitVideo();
     AudioInit();
 
