@@ -1,0 +1,2 @@
+run,port,mode,presses,lost,event_n,event_mean_ms,event_p95_ms,event_max_ms,sample_mean_ms,sample_p95_ms,display_mean_ms,display_p50_ms,display_p95_ms,display_max_ms
+sa2-latency-60-stall,SA2,60 Hz vsync,20,2,18,10.976,16.928,17.537,43.293,227.349,59.611,29.645,243.298,456.832

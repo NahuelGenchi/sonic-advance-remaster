@@ -1,0 +1,3 @@
+run,port,cpu_s,cpu_pct_one_core,gpu_s,gpu_pct_wall,vram_kib,global_gpu_mean,global_gpu_max
+sa1-clean-60-vsync,SA1,1.1,5.239,0.169,0.803,13512,2.871,89
+sa2tas-clean-60-vsync,SA2 (TAS),1.16,5.524,0.187,0.89,13512,4.591,53
