@@ -1,7 +1,7 @@
 # M2 renderer
 
-[Back to README](../README.md) · [Renderer architecture](../docs/RENDERER.md) ·
-[BG-sprite composition](../docs/BG-SPRITES.md) · [Stage 0 host](../tools/stage0/README.md)
+[Back to README](../../README.md) · [Renderer architecture](../../docs/RENDERER.md) ·
+[BG-sprite composition](../../docs/BG-SPRITES.md) · [Stage 0 host](../../tools/stage0/README.md)
 
 This directory holds the project's own renderer code. It never contains
 upstream source: the upstream game core is linked from an external checkout
@@ -16,7 +16,7 @@ the background tilemaps, and apply the text-BG map fills the game requests.
 the only file here that includes upstream headers.
 
 The design, the VBlank order, the map geometry rules and the recorded
-verification are in [`docs/BG-SPRITES.md`](../docs/BG-SPRITES.md).
+verification are in [`docs/BG-SPRITES.md`](../../docs/BG-SPRITES.md).
 
 ## Tests
 
