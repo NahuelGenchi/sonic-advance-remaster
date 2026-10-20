@@ -14,7 +14,7 @@ describe the unmodified upstream ports at their current 426x240 client area.
 
 | Question | Result |
 | :--- | :--- |
-| Do both ports hold 60 Hz with vsync? | Yes. SA1 59.997 presents/s, SA2 TAS 59.795 presents/s, with 1 and 4 late presents in a 20 s window. |
+| Do both ports hold 60 Hz with vsync? | Yes. SA1 59.997 presents/s with 1 late present in 17.5 s; SA2 TAS 59.795 presents/s with 4 late presents in 20 s. |
 | What does a 60 Hz step cost? | 0.651 ms CPU and 0.125 ms GPU on SA1; 0.698 ms CPU and 0.139 ms GPU on SA2 TAS, per game step. |
 | What is the present ceiling? | About 14.5k presents/s with vsync off, with the logic still stepping at 60 Hz. |
 | What does a 120 Hz cadence cost? | 1.52-1.54 ms CPU and 0.22-0.24 ms GPU per step, at a clean 2 presents per step. |
@@ -81,9 +81,9 @@ the wrong input path.
 
 Each baseline run lasts 42 s: 20 s warm-up, a 21 s sampling window and a 1 s
 cooldown. Pacing distributions use the analysis window from game step 1200 to
-2400, which is about 20 s at 60 steps/s; cost figures use the full 21 s sampling
-window. One baseline run was recorded per configuration; each latency case is
-20 presses.
+2400 or the end of the log: 20 s for SA2 TAS and 17.5 s for SA1, whose log ends
+at step 2249. Cost figures use the full 21 s sampling window. One baseline run
+was recorded per configuration; each latency case is 20 presses.
 
 The local instrumentation writes CSV-like lines with `CLOCK_MONOTONIC` times:
 
@@ -258,11 +258,11 @@ Clean binaries without the instrumentation were also run at 60 Hz:
 | SA2 TAS clean, 60 vsync | 1.16 | 5.5% | 0.187 | 0.9% | 13.2 MiB |
 
 These are not an overhead correction. The SA1 clean run stays at the title
-screen while the instrumented SA1 run uses the scripted gameplay scene, and the
-SA2 clean and instrumented title runs differ in the other direction (the clean
-run used more CPU), so run-to-run and scene differences are larger than any
-overhead signal we can extract. The cost figures above include the logging cost;
-the underlying port cost is no higher than reported.
+screen while the instrumented SA1 run uses the scripted gameplay scene; the SA2
+clean and instrumented runs both play the TAS tape, but the clean run used more
+CPU. Run-to-run and scene/timing differences are larger than any overhead signal
+we can extract. The cost figures above include the logging cost; the underlying
+port cost is no higher than reported.
 
 ## Headroom and what it means for M2
 
