@@ -122,6 +122,13 @@ void sar_ui_viewport_port_render_field(void)
     capture_registers(&state);
     capture_affine(&state);
 
+    /*
+     * The affine parameters are the ones the engine wrote for this frame.
+     * The reference is the source pixel the screen's origin maps to; it
+     * steps by the vertical matrix after every line, the way the hardware
+     * does, so the field is sampled with the same source pixels the
+     * software PPU samples.
+     */
     for (line = 0; line < DISPLAY_HEIGHT; line++) {
         REG_VCOUNT = (uint16_t)line;
 
@@ -134,10 +141,15 @@ void sar_ui_viewport_port_render_field(void)
 
         if (line < SAR_UI_FIELD_HEIGHT) {
             /* The engine's H-blank handler may have changed the scroll
-             * registers, so they are read again for every line. The affine
-             * reference keeps the value the frame started with. */
+             * registers, so they are read again for every line. */
             capture_registers(&state);
             sar_ui_viewport_render_scanline(&state, SAR_UI_MAP_LAYOUT_GBA, line, ui_field + (size_t)line * SAR_UI_FIELD_WIDTH);
+
+            /* The reference steps after the line it was used for. */
+            state.bg2_x += state.bg2_pb;
+            state.bg2_y += state.bg2_pd;
+            state.bg3_x += state.bg3_pb;
+            state.bg3_y += state.bg3_pd;
         }
 
         REG_DISPSTAT |= INTR_FLAG_HBLANK;

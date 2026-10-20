@@ -195,7 +195,7 @@ static void render_text_bg(const SarUiViewportState *state, SarUiMapLayout layou
 }
 
 /* One affine background scanline. */
-static void render_affine_bg(const SarUiViewportState *state, int bg, int y, uint16_t *row)
+static void render_affine_bg(const SarUiViewportState *state, int bg, uint16_t *row)
 {
     uint16_t bgcnt = state->bgcnt[bg];
     uint32_t map_size = (uint32_t)(bgcnt >> 14) & 3u;
@@ -211,13 +211,13 @@ static void render_affine_bg(const SarUiViewportState *state, int bg, int y, uin
     int x;
 
     if (bg == 2) {
-        reference_x = state->bg2_x + (int32_t)y * state->bg2_pb;
-        reference_y = state->bg2_y + (int32_t)y * state->bg2_pd;
+        reference_x = state->bg2_x;
+        reference_y = state->bg2_y;
         pa = state->bg2_pa;
         pc = state->bg2_pc;
     } else {
-        reference_x = state->bg3_x + (int32_t)y * state->bg3_pb;
-        reference_y = state->bg3_y + (int32_t)y * state->bg3_pd;
+        reference_x = state->bg3_x;
+        reference_y = state->bg3_y;
         pa = state->bg3_pa;
         pc = state->bg3_pc;
     }
@@ -393,7 +393,7 @@ void sar_ui_viewport_render_scanline(const SarUiViewportState *state, SarUiMapLa
                 continue;
             }
             if (bg_is_affine(state, bg)) {
-                render_affine_bg(state, bg, y, row);
+                render_affine_bg(state, bg, row);
             } else {
                 render_text_bg(state, layout, bg, y, row);
             }

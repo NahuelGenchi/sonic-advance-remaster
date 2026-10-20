@@ -111,7 +111,11 @@ typedef struct {
     uint16_t bgofs_h[4];
     uint16_t bgofs_v[4];
 
-    /* The affine background parameters, at the start of the frame. */
+    /*
+     * The affine background parameters. The reference is the source pixel
+     * the screen's origin maps to; the caller provides the reference of the
+     * scanline being composed, because the engine writes it per scanline.
+     */
     int32_t bg2_x;
     int32_t bg2_y;
     int16_t bg2_pa;
