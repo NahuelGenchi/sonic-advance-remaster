@@ -81,6 +81,8 @@ feature:
 | `SAR_CAPTURE_DIR` | Existing directory for `frame_NNNNNN.ppm` (software PPU) and `frame_NNNNNN.gl.ppm` (GL back buffer). |
 | `SAR_EXIT_AFTER_FRAME` | Exit cleanly after presenting this VBlank. |
 | `SAR_VSYNC` | `1` (default) requests FIFO; `0` disables FIFO and uses the host's 60 Hz clock. Use `0` for recorded capture and audio runs so an occluded window cannot throttle the run. |
+| `SAR_OAM_BRIDGE` | `0` disables the canonical OAM bridge. By default the host converts the GBA-native OAM records of the engine into the extended layout before the software PPU draws; see [docs/OAM.md](../../docs/OAM.md). |
+| `SAR_SCRIPT` | `sa1` replays the Sonic Advance 1 capture input schedule instead of the keyboard, for deterministic recorded runs. |
 
 A tape frame check:
 
