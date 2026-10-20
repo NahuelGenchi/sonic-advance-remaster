@@ -68,8 +68,9 @@ At the pin, `include/gba/defines.h:52-53` sets `DISPLAY_WIDTH 426` and
 (`defines.h:69-74`). The GBA-native build uses 8-byte entries.
 
 The UI art itself is still GBA-sized. The title BG0 and the zone-select BG1 are
-256x256 text maps; the title BG2 is a 512x256 map. Only 30x20 or 20x32 tiles of
-those maps are written. Nothing in the port re-authors them for 426x240.
+256x256 text maps; the title BG2 is a 512x256 map. Only the GBA-sized regions
+are written: 30x20 tiles for the title BG0, 24x10 for the title BG2 logo and
+20x32 for the zone-select list. Nothing in the port re-authors them for 426x240.
 
 ## Root cause 1: a 240x160 UI field sampled by a 426x240 viewport
 
@@ -92,7 +93,7 @@ samples them as if the field were 426x240:
 
 The 426x240 before frames are [title](images/sa1-ui-title-before.png) and
 [zone select](images/sa1-ui-zone-select-before.png). The native 240x160 build
-shows the same title and zone-select screens without either defect
+shows the title screen without either defect
 ([title](images/sa1-ui-title-native-240x160.png)). That is the control: the art,
 palettes and tile data are intact; the 426x240 viewport is what exposes the
 unowned map area.
@@ -147,9 +148,10 @@ so the image is in VRAM.
 What is missing is the BG map. Two port-side gaps combine:
 
 - `sub_8004010` (`src/background.c:1058`) is the VBlank fill that should write
-  the text-BG map for `gBgSprites`. Its C implementation is 57.61% and the fill
-  in its `gBgSprites_Unknown2[bg][2] == 0xFF` branch is disabled with `#if 0`
-  and a comment that it crashes the game (`background.c:1121-1125`).
+  the text-BG map for `gBgSprites`. Its C implementation is a non-matching
+  decompilation (58.36% in the upstream scratch link) and the fill in its
+  `gBgSprites_Unknown2[bg][2] == 0xFF` branch is disabled with `#if 0` and a
+  comment that it crashes the game (`background.c:1121-1125`).
 - `sub_80039E4` (`src/background.c:865`) is the per-frame BG-sprite compositor.
   Under `PORTABLE` it clears `gBgSpritesCount` and returns before doing any
   work (`background.c:878-881`). The software path below it is also marked
