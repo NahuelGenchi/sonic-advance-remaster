@@ -111,7 +111,7 @@ The remaster layer is the M2 work. The stage 0 host and the stage 1 GPU layer pa
 
 When each of those is captured from a build, it will appear on this page. Until then, this section is a plan, not a claim.
 
-The architecture and the never-vendored build boundary are recorded in [docs/RENDERER.md](docs/RENDERER.md). Stage 0's build driver and host are documented in [tools/stage0/README.md](tools/stage0/README.md), the stage 1 layer path in [tools/stage1/README.md](tools/stage1/README.md), and its verification record in [docs/STAGE1.md](docs/STAGE1.md). The first piece of renderer-owned game state is the BG-sprite composition, documented in [docs/BG-SPRITES.md](docs/BG-SPRITES.md).
+The architecture and the never-vendored build boundary are recorded in [docs/RENDERER.md](docs/RENDERER.md). Stage 0's build driver and host are documented in [tools/stage0/README.md](tools/stage0/README.md), the stage 1 layer path in [tools/stage1/README.md](tools/stage1/README.md), and its verification record in [docs/STAGE1.md](docs/STAGE1.md). The first pieces of renderer-owned game state are the BG-sprite composition, documented in [docs/BG-SPRITES.md](docs/BG-SPRITES.md), the canonical OAM layout in [docs/OAM.md](docs/OAM.md), and the 240x160 UI field in [docs/UI-VIEWPORT.md](docs/UI-VIEWPORT.md).
 
 ## Build and capture
 

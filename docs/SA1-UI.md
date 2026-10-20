@@ -1,12 +1,17 @@
 # Sonic Advance 1 UI at 426x240
 
-[Back to README](../README.md) · [Renderer](RENDERER.md) · [BG sprites](BG-SPRITES.md) · [Frame capture](CAPTURE.md) · [Issue #11](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/11) · [Upstream #274](https://github.com/SAT-R/sa2/issues/274)
+[Back to README](../README.md) · [Renderer](RENDERER.md) · [BG sprites](BG-SPRITES.md) · [UI field](UI-VIEWPORT.md) · [Canonical OAM](OAM.md) · [Frame capture](CAPTURE.md) · [Issue #11](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/11) · [Upstream #274](https://github.com/SAT-R/sa2/issues/274)
 
-**Status:** research for M2. The BG-sprite compositor of root cause 3 is
-implemented in [`docs/BG-SPRITES.md`](BG-SPRITES.md) (issue
-[#16](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/16)); the
-UI viewport and the OAM layout are still research. Every "after" frame below
-comes from a local, uncommitted experiment in a private upstream checkout at
+**Status:** research for M2, with two of the three causes now implemented in
+this repository. The BG-sprite compositor of root cause 3 is implemented in
+[`docs/BG-SPRITES.md`](BG-SPRITES.md) (issue
+[#16](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/16)), the
+OAM layout of root cause 2 in [`docs/OAM.md`](OAM.md) (issue
+[#14](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/14)), and
+the UI field of root cause 1 in [`docs/UI-VIEWPORT.md`](UI-VIEWPORT.md)
+(issue [#15](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/15)).
+Every "after" frame of the research below comes from a local, uncommitted
+experiment in a private upstream checkout at
 `393357f7c9d46b5c10b6c41a57b80fe3b58f3c8d`; the repository contains the
 documentation and the frames, not the patch. The upstream tree, ROM and saves
 stay outside the repository.
@@ -16,7 +21,7 @@ shows together at 426x240:
 
 | Scene | What the 426x240 port shows | Cause | Tested locally | Shipping status |
 | :--- | :--- | :--- | :--- | :--- |
-| Title, main menu, zone select | Art repeats at x >= 256 and the bottom 80 rows are garbage | 240x160 UI maps are sampled by a 426x240 viewport; the shared text-BG path also carries a SA2-specific 512-wide hack | 240x160 UI viewport | Not shipped; follow-up #15 |
+| Title, main menu, zone select | Art repeats at x >= 256 and the bottom 80 rows are garbage | 240x160 UI maps are sampled by a 426x240 viewport; the shared text-BG path also carries a SA2-specific 512-wide hack | 240x160 UI viewport | Composed on the 240x160 field by the project's own module, [docs/UI-VIEWPORT.md](UI-VIEWPORT.md); the upstream port is unchanged |
 | Stage HUD | Rings, time and the character icon are missing | SA1 HUD writers use the 8-byte GBA `.all.attr*` view; the 426x240 build uses the 12-byte `.split` view | `EXTENDED_OAM FALSE` diagnostic | Canonical OAM bridge in the stage 0 host, [docs/OAM.md](OAM.md); the upstream port is unchanged |
 | Character select | Backdrop is stale, colourful garbage at 240x160 and 426x240 | The BG-sprite compositor is stubbed under `PORTABLE` and the text-BG map fill is disabled, so the backdrop map is never written | Fill the BG1 map with the animation's base tile | Composed by the BG-sprite compositor, [docs/BG-SPRITES.md](BG-SPRITES.md) |
 
@@ -431,5 +436,8 @@ The converter uses nearest-neighbour scaling only.
 - [OAM layout follow-up #14](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/14)
 - [UI viewport follow-up #15](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/15)
 - [BG-sprite follow-up #16](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/16)
+- [The 240x160 UI field](UI-VIEWPORT.md)
+- [Canonical OAM](OAM.md)
+- [BG sprites](BG-SPRITES.md)
 - [Renderer architecture](RENDERER.md)
 - [Frame capture](CAPTURE.md)
