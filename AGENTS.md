@@ -19,7 +19,7 @@ Never describe something as working unless a recorded build or run establishes i
 | `docs/CAPTURE.md` | How frames and clips are captured from a build (M1) |
 | `docs/images/` | Committed frames and clips, each captured from a recorded run |
 | `remaster/host/` | Project-owned stage 0 host: window, input, audio, save, GL context and presentation |
-| `remaster/renderer/` | Project-owned stage 1 GPU layer path: per-tick snapshot, layer rasterization and the GBA composite pass |
+| `remaster/renderer/` | Project-owned renderer: the stage 1 GPU layer path (per-tick snapshot, layer rasterization, GBA composite pass) and the renderer-owned game state (canonical OAM, BG-sprite composition, the 240x160 UI field) |
 | `remaster/shaders/` | GLSL 330 sources of the stage 1 layer path |
 | `tools/` | Project tooling (capture helpers, asset pipelines) as it lands, with `tools/stage1/` for the layer path |
 | `.local/` | The user's local ROMs and scratch data; git ignores it and it is never committed |
@@ -30,6 +30,7 @@ Never describe something as working unless a recorded build or run establishes i
 - `git switch -c <type>/<issue>-<slug> origin/main` starts a work item.
 - Source and port checks: the upstream build and the capture path are recorded in `docs/CAPTURE.md`; the port sources themselves are not in this repository.
 - Stage 0 host build: `SA2_UPSTREAM=<external-sa2> SAR_BUILD_ROOT=<external-build> tools/stage0/build.sh` validates the pin, snapshots upstream, archives the core and links the host. See `tools/stage0/README.md`.
+- Module tests: `tools/oam_test.sh` and `tools/ui_viewport_test.sh` build and run the renderer-owned module tests; they need no ROM, no upstream checkout and no display.
 - Capture review: `python3 tools/make_contact_sheet.py <capture-dir> <sheet-dir>` tiles a run into labeled sheets.
 
 ## Working well here
