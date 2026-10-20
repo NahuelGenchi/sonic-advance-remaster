@@ -123,6 +123,8 @@ struct SarLayerPath {
     long vram_dump_frame;
     FILE *oam_dump;
     long oam_dump_frame;
+    FILE *pal_dump;
+    long pal_dump_frame;
     char *layer_dump_prefix;
     long layer_dump_frame;
 
@@ -409,6 +411,13 @@ int SarLayerPathInit(SDL_Window *window)
     path = getenv("SAR_OAM_DUMP");
     if (path != NULL && *path != '\0') {
         if (!OpenDumpFile(path, &s_path.oam_dump, &s_path.oam_dump_frame)) {
+            return 0;
+        }
+    }
+
+    path = getenv("SAR_PALETTE_DUMP");
+    if (path != NULL && *path != '\0') {
+        if (!OpenDumpFile(path, &s_path.pal_dump, &s_path.pal_dump_frame)) {
             return 0;
         }
     }
@@ -822,6 +831,12 @@ int SarLayerPathRenderFrame(SarSnapshot *snapshot)
         fflush(s_path.oam_dump);
     }
 
+    if (s_path.pal_dump != NULL
+        && (s_path.pal_dump_frame < 0 || (long)snapshot->frame == s_path.pal_dump_frame)) {
+        fwrite(snapshot->palette, 1, sizeof(snapshot->palette), s_path.pal_dump);
+        fflush(s_path.pal_dump);
+    }
+
     upload_start = now;
     UploadVram(snapshot);
     UploadPalette(snapshot);
@@ -914,6 +929,11 @@ void SarLayerPathShutdown(void)
     if (s_path.oam_dump != NULL) {
         fclose(s_path.oam_dump);
         s_path.oam_dump = NULL;
+    }
+
+    if (s_path.pal_dump != NULL) {
+        fclose(s_path.pal_dump);
+        s_path.pal_dump = NULL;
     }
 
     if (s_path.layer_dump_prefix != NULL) {

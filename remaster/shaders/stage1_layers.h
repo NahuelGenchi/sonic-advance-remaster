@@ -75,10 +75,21 @@
     "        } else {\n"                                                                                                                       \
     "            uint tail = rest - full * 8u;\n"                                                                                              \
     "            uint runRest = (runLeft > full * 8u) ? (runLeft - full * 8u) : 0u;\n"                                                        \
-    "            uint base = (runRest == 0u) ? 0u : (h / 8u + (head > 0u ? 1u : 0u) + full);\n"                                             \
-    "            uint left = (avail > full * 8u) ? (avail - full * 8u) : 0u;\n"                                                              \
-    "            uint whole = left / 8u;\n"                                                                                                   \
-    "            tile = (tail < whole * 8u) ? (base + tail / 8u) : (base + whole);\n"                                                          \
+    "            uint left = (avail > full * 8u) ? (avail - full * 8u) : 0u;\n"                                                                          \
+    "            uint whole = left / 8u;\n"                                                                          \
+    "            bool wrapped = (runRest == 0u);\n"                                                                          \
+    "            uint base = h / 8u + (head > 0u ? 1u : 0u) + full;\n"                                                                          \
+    "            uint index;\n"                                                                          \
+    "            if (tail < whole * 8u) {\n"                                                                          \
+    "                index = tail / 8u;\n"                                                                          \
+    "                tile = wrapped ? (index % 32u) : (base + index);\n"                                                                          \
+    "            } else {\n"                                                                          \
+    "                // The last partial tile of the line is read from the\n"                                                                          \
+    "                // position where the group walk stopped, which is not\n"                                                                          \
+    "                // the start of the map row.\n"                                                                          \
+    "                index = (whole == 0u) ? 0u : (whole - 32u * ((whole - 1u) / 32u));\n"                                                                          \
+    "                tile = wrapped ? index : (base + whole);\n"                                                                          \
+    "            }\n"                                                                          \
     "        }\n"                                                                                                                            \
     "    }\n"                                                                                                                                \
     "    pixelInTile = (uint(x) + h) % 8u;\n"                                                                                                 \
