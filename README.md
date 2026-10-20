@@ -6,7 +6,7 @@
     the zones you know, at 426×240, with a new renderer and lighting still to come.
   </p>
   <p>
-    <img src="https://img.shields.io/badge/status-M1%20complete-2e9e6b?style=flat-square" alt="Status: M1 complete">
+    <img src="https://img.shields.io/badge/status-M2%20stage%200-2e9e6b?style=flat-square" alt="Status: M2 stage 0">
     <img src="https://img.shields.io/badge/base-SAT--R%20decompilation-1f6feb?style=flat-square" alt="Base: SAT-R decompilation">
     <img src="https://img.shields.io/badge/platform-Linux-4f79e4?style=flat-square&logo=linux&logoColor=white" alt="Platform: Linux">
     <img src="https://img.shields.io/badge/ROMs-bring%20your%20own-d29922?style=flat-square" alt="ROMs: bring your own">
@@ -84,7 +84,7 @@ Sonic Advance Remaster is a native desktop remaster of Sonic Advance 1 and Sonic
 
 The repository owns the remaster layer: the renderer, the lighting, the build and packaging, and the documentation. Upstream is unlicensed, so it is never vendored here. You clone it outside this repository, supply your own ROMs and build, as described in [Build and capture](#build-and-capture).
 
-What exists today is the foundation, the first real frames, and verified windowed runs with audio. The remaster renderer is the next milestone.
+What exists today is the foundation, the first real frames, verified windowed runs with audio, and the stage 0 remaster host. The remaster renderer is the next milestone.
 
 ## Status
 
@@ -92,7 +92,7 @@ What exists today is the foundation, the first real frames, and verified windowe
 | :--- | :--- | :--- |
 | **M0 — Project foundation** | Complete | Repository, tracking system, agent instructions, templates and the capture path |
 | **M1 — Native ports running** | Complete | Both ports build, run windowed and headless, with keyboard input, audio and a documented capture path |
-| **M2 — Renderer and lighting** | Planned | Subpixel camera, shader presentation, upscaled assets and 2.5D lighting |
+| **M2 — Renderer and lighting** | In progress | Stage 0 host and software-frame presentation are in the repository; subpixel camera, shader presentation, upscaled assets and 2.5D lighting remain |
 | **M3 — Release** | Planned | Packaging and the first public build |
 
 The captures come from the upstream ports as they are today. Sonic Advance's port is the rougher of the two: its menus and some UI render corrupted ([upstream issue #274](https://github.com/SAT-R/sa2/issues/274)) and the HUD is not visible in these frames, so only clean gameplay scenes are shown.
@@ -101,7 +101,7 @@ The captures come from the upstream ports as they are today. Sonic Advance's por
 
 The captures already show the first change: the ports render **426×240**, so each zone shows more to the left and right than the GBA's 240×160, and it is captured at that size.
 
-The remaster layer is the M2 work, and none of it is in the repository yet:
+The remaster layer is the M2 work. The stage 0 host is in the repository and presents the upstream software frame through a GL 3.3 core context; the visual remaster itself is not implemented yet:
 
 - **Subpixel camera and sprite placement**, so scrolling and movement stay smooth at any resolution.
 - **Shader-based presentation and upscaled, hand-checked assets**, keeping the original art direction.
@@ -109,11 +109,11 @@ The remaster layer is the M2 work, and none of it is in the repository yet:
 
 When each of those is captured from a build, it will appear on this page. Until then, this section is a plan, not a claim.
 
-The architecture and the never-vendored build boundary are recorded in [docs/RENDERER.md](docs/RENDERER.md). That document is a research decision; the renderer itself is not implemented yet.
+The architecture and the never-vendored build boundary are recorded in [docs/RENDERER.md](docs/RENDERER.md). Stage 0's build driver and host are documented in [tools/stage0/README.md](tools/stage0/README.md).
 
 ## Build and capture
 
-The remaster sources are not in this repository yet. What exists today is the upstream port, a documented headless capture path, verified windowed runs with audio, and the frames above.
+The remaster host still consumes an external upstream checkout; nothing from upstream is vendored here. The upstream port recipe remains:
 
 ```sh
 git clone https://github.com/SAT-R/sa2 /tmp/sa2
@@ -126,6 +126,20 @@ make -j"$(nproc)" sdl GAME_NAME=sa2 TAS_TESTING=1
 ```
 
 `TAS_TESTING=1` builds the SA2 port with its recorded input tape, which is how the SA2 captures were made without a keyboard; a build without it is what the interactive window check uses. The full recipe, the local capture hook, the environment variables and the frame behind every image are in [docs/CAPTURE.md](docs/CAPTURE.md).
+
+To build the stage 0 host, which keeps the same tape but replaces the upstream SDL presentation with a GL 3.3 core window:
+
+```sh
+SA2_UPSTREAM=/tmp/sa2 \
+SA2_ROM="/path/to/Sonic Advance 2 (USA) (En,Ja,Fr,De,Es,It).gba" \
+SAR_BUILD_ROOT=/tmp/sar-stage0 \
+tools/stage0/build.sh
+
+cd /tmp/sar-stage0
+SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav ./sa2-stage0
+```
+
+This is still software-PPU presentation, not the remaster renderer. [tools/stage0/README.md](tools/stage0/README.md) lists the fail-closed checks, the capture helpers and the current limitations.
 
 Upstream is unlicensed and its maintainers do not accept LLM-assisted contributions. It stays outside this repository, and nothing here is proposed back.
 
