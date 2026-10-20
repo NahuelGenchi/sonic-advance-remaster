@@ -18,8 +18,10 @@ Never describe something as working unless a recorded build or run establishes i
 | `docs/TRACKING.md` | The issue → branch → milestone → PR rules |
 | `docs/CAPTURE.md` | How frames and clips are captured from a build (M1) |
 | `docs/images/` | Committed frames and clips, each captured from a recorded run |
-| `remaster/host/` | Project-owned stage 0 host: window, input, audio, save, GL context and software-frame presentation |
-| `tools/` | Project tooling (capture helpers, asset pipelines) as it lands |
+| `remaster/host/` | Project-owned stage 0 host: window, input, audio, save, GL context and presentation |
+| `remaster/renderer/` | Project-owned stage 1 GPU layer path: per-tick snapshot, layer rasterization and the GBA composite pass |
+| `remaster/shaders/` | GLSL 330 sources of the stage 1 layer path |
+| `tools/` | Project tooling (capture helpers, asset pipelines) as it lands, with `tools/stage1/` for the layer path |
 | `.local/` | The user's local ROMs and scratch data; git ignores it and it is never committed |
 
 ## Commands

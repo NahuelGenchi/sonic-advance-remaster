@@ -9,17 +9,23 @@ upstream game core from an external, pinned checkout:
   `src/platform/pret_sdl/sdl2.o`, compiles the host from `remaster/host/`, and
   links the executable.
 - `remaster/host/` owns `main`, SDL video/input/audio, the save file,
-  `VBlankIntrWait` and the software-frame presentation path. It creates an
-  OpenGL 3.3 core context, uploads the upstream software PPU's `gameImage` at
-  426x240, and draws it with nearest sampling and integer letterboxing.
-- `remaster/renderer/` holds the BG-sprite composition: the project-owned
-  equivalent of the upstream functions that write the tilemap entries of the
-  full-background pictures the game registers. The host calls it between the
-  VBlank interrupt and the software PPU draw. Its rules and its recorded
-  verification are in [`docs/BG-SPRITES.md`](../../docs/BG-SPRITES.md).
+  `VBlankIntrWait` and the presentation path. It creates an OpenGL 3.3 core
+  context and draws either the upstream software PPU's `gameImage` at 426x240
+  or the frame of the stage 1 layer path, with nearest sampling and integer
+  letterboxing.
+- `remaster/renderer/` holds the stage 1 layer path: the per-tick snapshot,
+  the GLSL 330 layer rasterization and the composite pass. It is documented
+  in [`../stage1/README.md`](../stage1/README.md) and the record of its
+  verification is in [`../../docs/STAGE1.md`](../../docs/STAGE1.md).
+- `remaster/renderer/` also holds the BG-sprite composition: the
+  project-owned equivalent of the upstream functions that write the tilemap
+  entries of the full-background pictures the game registers. The host calls
+  it between the VBlank interrupt and the software PPU draw. Its rules and
+  its recorded verification are in
+  [`docs/BG-SPRITES.md`](../../docs/BG-SPRITES.md).
 - The game still runs one 60 Hz tick per `VBlankIntrWait`; the host does not
-  implement the GPU layer path, high-refresh interpolation, shaders beyond one
-  present shader, lighting or upscaled assets. Those are stages 1-4.
+  implement high-refresh interpolation, lighting or upscaled assets. Those are
+  stages 2-4.
 
 ## Prerequisites
 
@@ -53,6 +59,7 @@ Expected tail:
 ```text
 stage0: archiving ... upstream objects (sdl2.o excluded)
 stage0: compiling the host
+stage0: compiling the stage 1 layer path
 stage0: linking the host against the core archive
 stage0: ok; binary /tmp/sar-stage0/sa2-stage0
 ```
@@ -82,7 +89,10 @@ feature:
 | :--- | :--- |
 | `SAR_SAVE_PATH` | Save file path (default `sa2.sav` in the current directory). |
 | `SAR_KEY_LOG` | Write key-state changes as `frame=N keys=XXXX`; used to prove injected or physical key presses reach `Platform_GetKeyInput`. |
-| `SAR_CAPTURE_FRAME` | VBlank number to capture. Requires `SAR_CAPTURE_DIR`. |
+| `SAR_CAPTURE_FRAME` | VBlank number to capture, or a comma separated list of them. Requires `SAR_CAPTURE_DIR`. |
+| `SAR_RENDERER` | `software` (the default) draws the frame with the upstream software PPU, `gl` draws it with the stage 1 layer path. |
+| `SAR_ALLOW_SOFTWARE_FALLBACK` | `1` makes a start-up failure of the GPU layer path fall back to the software PPU with a message. The default fails closed. |
+| `SAR_PERF_LOG` | CSV with the per-frame cost of the layer path (snapshot, upload, submission, GPU). |
 | `SAR_CAPTURE_DIR` | Existing directory for `frame_NNNNNN.ppm` (software PPU) and `frame_NNNNNN.gl.ppm` (GL back buffer). |
 | `SAR_EXIT_AFTER_FRAME` | Exit cleanly after presenting this VBlank. |
 | `SAR_VSYNC` | `1` (default) requests FIFO; `0` disables FIFO and uses the host's 60 Hz clock. Use `0` for recorded capture and audio runs so an occluded window cannot throttle the run. |
@@ -133,10 +143,13 @@ a runtime surprise.
 
 ## What this does not establish
 
-- No GPU background or object rasterization, HBlank capture or GBA compositing.
 - No subpixel camera, interpolation, high-refresh schedule or frame pacing
   statistics.
-- No lighting, depth/layer buffer or shader variants.
+- No lighting, depth/layer buffer or shader variants beyond the layer path
+  and the present shader.
+- The layer path is verified on the Leaf Forest Act 1 slice only; the affine
+  background, colour effect, window and object window paths are implemented
+  but the recorded scene does not exercise them.
 - No Sonic Advance 1 build and no packaging.
 - The windowed run is Linux/X11 through XWayland on the recorded host; native
   Wayland, Windows and macOS were not checked.

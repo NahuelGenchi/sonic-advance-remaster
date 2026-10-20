@@ -198,11 +198,17 @@ printf 'stage0: compiling the BG-sprite composition module\n'
 "$CC" "${renderer_flags[@]}" -c "$repo_root/remaster/renderer/bg_sprites.c" -o "$build_root/host/bg_sprites.o"
 "$CC" "${renderer_flags[@]}" -c "$repo_root/remaster/renderer/bg_sprites_port.c" -o "$build_root/host/bg_sprites_port.o"
 
+printf 'stage0: compiling the stage 1 layer path\n'
+"$CC" "${host_flags[@]}" -c "$repo_root/remaster/renderer/layer_path.c" -o "$build_root/host/layer_path.o"
+"$CC" "${host_flags[@]}" -c "$repo_root/remaster/renderer/snapshot.c" -o "$build_root/host/snapshot.o"
+"$CC" "${host_flags[@]}" -c "$repo_root/remaster/renderer/gl_api.c" -o "$build_root/host/gl_api.o"
+
 printf 'stage0: linking the host against the core archive\n'
 "$CC" "$build_root/host/main.o" "$build_root/host/present.o" \
     "$build_root/host/oam_bridge.o" "$build_root/host/script_input.o" \
     "$build_root/host/oam.o" \
     "$build_root/host/bg_sprites.o" "$build_root/host/bg_sprites_port.o" \
+    "$build_root/host/layer_path.o" "$build_root/host/snapshot.o" "$build_root/host/gl_api.o" \
     "$core_archive" "$snapshot/libagbsyscall/build/sdl/libagbsyscall.a" \
     "${sdl_libs[@]}" -lm -Wl,--no-undefined -o "$build_root/sa2-stage0"
 
@@ -237,6 +243,10 @@ hash_file() {
     printf 'bg_sprites.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites.h")"
     printf 'bg_sprites_port.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites_port.c")"
     printf 'bg_sprites_port.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites_port.h")"
+    printf 'layer_path.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/layer_path.c")"
+    printf 'snapshot.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/snapshot.c")"
+    printf 'gl_api.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/gl_api.c")"
+    printf 'stage1_layers.h=%s\n' "$(hash_file "$repo_root/remaster/shaders/stage1_layers.h")"
     if [ -n "$rom" ]; then
         printf 'rom_sha1=%s\n' "$rom_sha1"
     fi
