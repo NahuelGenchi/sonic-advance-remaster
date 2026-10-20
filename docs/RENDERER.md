@@ -2,13 +2,21 @@
 
 [Back to README](../README.md) · [Tracking](TRACKING.md) · [Frame capture](CAPTURE.md) · [BG sprites](BG-SPRITES.md) · [Issue #10](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/10)
 
-**Status:** architecture decision for M2, with the stage 0 host implemented. The
-host in `remaster/host/` replaces the upstream SDL platform, creates a GL 3.3
-core context and presents the upstream software PPU frame at 426x240. It is not
-the remaster renderer: no GPU layer path, high-refresh presentation, lighting
-or upscaled assets exist yet. The integration harness in
-[`tools/renderer_harness/`](../tools/renderer_harness/README.md) remains the
-minimum boundary proof; the stage 0 build driver is
+**Status:** architecture decision for M2, with the stage 0 host and the stage 1
+GPU layer path implemented. The host in `remaster/host/` replaces the upstream
+SDL platform and creates a GL 3.3 core context. It presents either the
+upstream software PPU frame at 426x240 (`SAR_RENDERER=software`, the default
+and the reference) or the frame of the project-owned layer path
+(`SAR_RENDERER=gl`). The layer path draws the GBA backgrounds and objects
+from a per-tick snapshot and composites them with the priority, colour
+effect, window and object transparency rules of the software PPU; on the ten
+recorded Leaf Forest Act 1 reference frames it matches the software PPU on
+every channel of every pixel. It is still not the remaster renderer: there is
+no high-refresh presentation, no subpixel camera, no lighting and no upscaled
+assets yet. The stage 1 record is [`docs/STAGE1.md`](STAGE1.md), the tools
+are in [`tools/stage1/`](../tools/stage1/README.md), the integration harness
+in [`tools/renderer_harness/`](../tools/renderer_harness/README.md) remains
+the minimum boundary proof, and the stage 0 build driver is
 [`tools/stage0/build.sh`](../tools/stage0/build.sh).
 
 This document records the M2 architecture: the backend, the never-vendored
@@ -63,7 +71,21 @@ here:
   that replaces the PPU must reproduce that scanline state; a simple
   full-screen quad cannot.
 
-Stage 0 now replaces the presentation owner without replacing the game:
+Stage 1 adds the GPU layer path on top of that host:
+- `remaster/renderer/snapshot.c` runs the scanline state machine of the
+  upstream software PPU and records the display state of every line, so the
+  per-line HBlank effects of the game are reproduced. The VRAM is uploaded
+  per dirty 1 KB page, the palettes when they change.
+- `remaster/renderer/layer_path.c` rasterizes the four backgrounds, the
+  objects and the composite pass with OpenGL 3.3 core and GLSL 330, and
+  writes the composited scene in linear light.
+- `SAR_RENDERER=software|gl` selects the renderer. A failed context, a
+  failed shader or an incomplete framebuffer fails closed with a message;
+  `SAR_ALLOW_SOFTWARE_FALLBACK=1` falls back to the software PPU.
+- The ten recorded Leaf Forest Act 1 reference frames are identical to the
+  software PPU frames, and the recorded runs hold the 60 Hz tick.
+
+Stage 0 replaces the presentation owner without replacing the game:
 
 - `tools/stage0/build.sh` validates the external checkout, snapshots it with
   `git archive`, builds the upstream `sdl` objects, archives every object except
@@ -734,10 +756,21 @@ and `keys=0001` (C) changes in the host key log, which is written by
 `Platform_GetKeyInput`. A 900-tick run with SDL's disk audio driver
 produced 15.55 s of audio with peak 5026, RMS 883.88 and 83.1% non-zero samples.
 
-Not measured or not implemented: any GPU layer rasterization, HBlank parity,
-subpixel interpolation, high-refresh schedule, lighting, audio latency,
-performance targets, Sonic Advance 1, or a Windows/macOS host. The stage 0 run
-does not validate the M2 renderer.
+The stage 1 layer path was checked on 2026-10-20 with the same pinned
+upstream checkout and the same tape. The driver built the host and the layer
+path, the software frame 1200 kept its SHA-256
+`134e4df9b462e85f0e7a1a54727beec0c449454a5706d5f64a5f9c7692a81110`, and ten
+Leaf Forest Act 1 frames captured with `SAR_RENDERER=gl` were compared with
+the software PPU frames: zero differing pixels and a maximum channel delta of
+zero on every frame. The recorded GPU runs hold 59.6 to 59.7 frames per
+second, and the per-frame cost of the snapshot, the upload, the submission
+and the GPU is in [`docs/STAGE1.md`](STAGE1.md).
+
+Not measured or not implemented: subpixel interpolation, high-refresh
+schedule, lighting, audio latency, the performance targets at 1080p or 4K,
+Sonic Advance 1, or a Windows/macOS host. The stage 1 layer path covers the
+Leaf Forest slice only: affine backgrounds, colour effects, windows and the
+object window are implemented but the recorded scene does not exercise them.
 
 ## References
 
@@ -754,6 +787,10 @@ does not validate the M2 renderer.
   boundary harness and its fail-closed checks.
 - [`tools/stage0/README.md`](../tools/stage0/README.md): the stage 0 build
   driver, host and verification helpers.
+- [`tools/stage1/README.md`](../tools/stage1/README.md): the stage 1 layer
+  path, the renderer switch, the capture and comparison helpers.
+- [`docs/STAGE1.md`](STAGE1.md): the stage 1 record, its verification and its
+  limits.
 - [Issue #9](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/9):
   frame pacing, vsync and headroom baseline.
 - [Issue #10](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/10):

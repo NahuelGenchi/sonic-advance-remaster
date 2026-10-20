@@ -286,6 +286,15 @@ SAR_EXIT_AFTER_FRAME=1200 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav \
 the recorded run. The capture is verification output; curated images still come
 from the M1 capture path.
 
+`SAR_CAPTURE_FRAME` accepts a comma separated list of VBlank numbers, so one
+recorded run can capture several reference frames. On the GPU layer path
+(`SAR_RENDERER=gl`) the host does not run the software PPU, so the capture
+directory holds the readback of the presented frame
+(`frame_NNNNNN.gl.ppm`) and no software frame. The slice helper
+[`tools/stage1/capture_slice.py`](../tools/stage1/capture_slice.py) runs both
+renderers on the same tape and compares the frames; see
+[`tools/stage1/README.md`](../tools/stage1/README.md).
+
 ## Review the captures
 
 ```sh

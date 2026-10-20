@@ -364,16 +364,22 @@ static void CaptureFrame(void)
         Shutdown(1);
     }
 
-    // The GPU path does not run the software PPU, so it has no software
-    // frame to write; the readback of the presented frame is the capture.
-    if (!renderer_gl && !WriteGameImagePpm(game_path)) {
-        Shutdown(1);
+    // The GPU path does not run the software PPU, so it has no software frame
+    // to write; the readback of the presented frame is the capture.
+    if (!renderer_gl) {
+        if (!WriteGameImagePpm(game_path)) {
+            Shutdown(1);
+        }
+        if (!SarPresentCaptureGlPpm(gl_path)) {
+            Shutdown(1);
+        }
+        printf("stage0: captured frame %llu (%s, %s)\n", frame_counter, game_path, gl_path);
+    } else {
+        if (!SarPresentCaptureGlPpm(gl_path)) {
+            Shutdown(1);
+        }
+        printf("stage1: captured frame %llu (%s)\n", frame_counter, gl_path);
     }
-    if (!SarPresentCaptureGlPpm(gl_path)) {
-        Shutdown(1);
-    }
-
-    printf("stage0: captured frame %llu (%s, %s)\n", frame_counter, game_path, gl_path);
 }
 
 static void Pace(void)

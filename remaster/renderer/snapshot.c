@@ -244,6 +244,8 @@ void SarSnapshotDump(const SarSnapshot *snapshot, FILE *out)
         fprintf(out,
                 "line %3d dispcnt=%04x bldcnt=%04x bldalpha=%04x bldy=%04x mosaic=%04x winin=%04x winout=%04x\n",
                 i, line->dispcnt, line->bldcnt, line->bldalpha, line->bldy, line->mosaic, line->winin, line->winout);
+        fprintf(out, "        win0h=%08x win0v=%08x win1h=%08x win1v=%08x\n", line->win0h, line->win0v, line->win1h,
+                line->win1v);
         fprintf(out,
                 "        bg0 hofs=%5u vofs=%5u cnt=%04x | bg1 hofs=%5u vofs=%5u cnt=%04x | bg2 hofs=%5u vofs=%5u cnt=%04x | bg3 hofs=%5u vofs=%5u cnt=%04x\n",
                 line->hofs[0], line->vofs[0], line->cnt[0], line->hofs[1], line->vofs[1], line->cnt[1], line->hofs[2],

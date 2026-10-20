@@ -103,7 +103,7 @@ The current ports' measured frame pacing, CPU/GPU cost and input latency are rec
 
 The captures already show the first change: the ports render **426×240**, so each zone shows more to the left and right than the GBA's 240×160, and it is captured at that size.
 
-The remaster layer is the M2 work. The stage 0 host is in the repository and presents the upstream software frame through a GL 3.3 core context; the visual remaster itself is not implemented yet:
+The remaster layer is the M2 work. The stage 0 host and the stage 1 GPU layer path are in the repository: the host presents the upstream software frame through a GL 3.3 core context, and the layer path draws the GBA backgrounds and objects on the GPU from a per-tick snapshot. The visual remaster itself is not implemented yet:
 
 - **Subpixel camera and sprite placement**, so scrolling and movement stay smooth at any resolution.
 - **Shader-based presentation and upscaled, hand-checked assets**, keeping the original art direction.
@@ -111,7 +111,7 @@ The remaster layer is the M2 work. The stage 0 host is in the repository and pre
 
 When each of those is captured from a build, it will appear on this page. Until then, this section is a plan, not a claim.
 
-The architecture and the never-vendored build boundary are recorded in [docs/RENDERER.md](docs/RENDERER.md). Stage 0's build driver and host are documented in [tools/stage0/README.md](tools/stage0/README.md). The first piece of renderer-owned game state is the BG-sprite composition, documented in [docs/BG-SPRITES.md](docs/BG-SPRITES.md).
+The architecture and the never-vendored build boundary are recorded in [docs/RENDERER.md](docs/RENDERER.md). Stage 0's build driver and host are documented in [tools/stage0/README.md](tools/stage0/README.md), the stage 1 layer path in [tools/stage1/README.md](tools/stage1/README.md), and its verification record in [docs/STAGE1.md](docs/STAGE1.md). The first piece of renderer-owned game state is the BG-sprite composition, documented in [docs/BG-SPRITES.md](docs/BG-SPRITES.md).
 
 ## Build and capture
 
@@ -141,7 +141,7 @@ cd /tmp/sar-stage0
 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav ./sa2-stage0
 ```
 
-This is still software-PPU presentation, not the remaster renderer. [tools/stage0/README.md](tools/stage0/README.md) lists the fail-closed checks, the capture helpers and the current limitations.
+By default this is still software-PPU presentation. `SAR_RENDERER=gl` selects the stage 1 GPU layer path instead, and `SAR_RENDERER=software` selects the software PPU. [tools/stage0/README.md](tools/stage0/README.md) lists the fail-closed checks, the capture helpers and the current limitations, and [tools/stage1/README.md](tools/stage1/README.md) documents the layer path, the switch and the frame comparison.
 
 Upstream is unlicensed and its maintainers do not accept LLM-assisted contributions. It stays outside this repository, and nothing here is proposed back.
 

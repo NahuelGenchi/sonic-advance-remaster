@@ -437,56 +437,70 @@
     "        uint objPrio = rest / 4u;\n"                                                                                                     \
     "        valids[4] = true; cols[4] = floor(so.rgb * 255.0 + 0.5); keys[4] = float(objPrio * 8u); ids[4] = 4;\n"    \
     "    }\n"                                                                                                                                \
-    "    int top = -1;\n"                                                                                                                   \
-    "    int second = -1;\n"                                                                                                                 \
-    "    for (int i = 0; i < 5; i++) {\n"                                                                                                \
-    "        if (!valids[i]) { continue; }\n"                                                                                                  \
-    "        if (top < 0 || keys[i] < keys[top]) { second = top; top = i; }\n"                                                                       \
-    "        else if (second < 0 || keys[i] < keys[second]) { second = i; }\n"                                                                \
-    "    }\n"                                                                                                                                \
-    "    vec3 backdrop = uBackdrop;\n"                                                                                                       \
-    "    vec3 base = (top >= 0) ? cols[top] : backdrop;\n"                                                                                 \
-    "    vec3 below = (second >= 0) ? cols[second] : backdrop;\n"                                                                               \
-    "    int baseId = (top >= 0) ? ids[top] : 5;\n"                                                                                          \
-    "    int belowId = (second >= 0) ? ids[second] : 5;\n"                                                                                    \
-    "    bool stTop = false;\n"                                                                                                               \
-    "    if (top == 4) {\n"                                                                                                                      \
-    "        uint rest = 255u - objAlpha;\n"                                                                                             \
-    "        stTop = (rest % 4u) >= 1u;\n"                                                                                                    \
-    "    }\n"                                                                                                                                \
-    "    uint effect = (bldcnt >> 6) & 3u;\n"                                                                                                \
-    "    bool effectsEnabled = (enable & 0x20u) != 0u;\n"                                                                                      \
-    "    bool baseFirst = Target1(bldcnt, baseId);\n"                                                                                        \
-    "    bool belowSecond = Target2(bldcnt, belowId);\n"                                                                                        \
-    "    bool forceBlend = stTop && belowSecond;\n"                                                                                           \
-    "    bool alphaBlend = (top >= 0) && baseFirst && belowSecond && (effect == 1u) && effectsEnabled;\n"  \
-    "    vec3 result = base;\n"                                                                                                            \
-    "    if (forceBlend || alphaBlend) {\n"                                                                                                   \
-    "        float a = float(min(16u, bldalpha & 0x1Fu));\n"                                                                                  \
-    "        float b = float(min(16u, (bldalpha >> 8) & 0x1Fu));\n"                                                                              \
-    "        vec3 blended = floor((base * a + below * b) / 16.0);\n"                                                                                \
-    "        result = min(blended, vec3(31.0));\n"                                                                                          \
-    "    } else if (top >= 0) {\n"                                                                                        \
-    "        if (effectsEnabled && (effect == 2u || effect == 3u) && baseFirst) {\n"                                                              \
-    "            float bright = float(min(16u, bldy & 0x1Fu));\n"                                                                              \
-    "            if (effect == 2u) {\n"                                                                                              \
-    "                result = min(floor((vec3(31.0) * bright + base * (16.0 - bright)) / 16.0), vec3(31.0));\n" \
-    "            } else {\n"                                                                                              \
-    "                result = floor(base * (16.0 - bright) / 16.0);\n"                                                                                 \
-    "            }\n"                                                                                                                            \
-    "        }\n"                                                                                                                            \
-    "    } else if (Target1(bldcnt, 5)) {\n"                                                                                        \
-    "        if (effect == 2u) {\n"                                                                                                              \
-    "            float bright = float(min(16u, bldy & 0x1Fu));\n"                                                                                      \
-    "            result = min(floor((vec3(31.0) * bright + base * (16.0 - bright)) / 16.0), vec3(31.0));\n" \
-    "        } else if (effect == 3u) {\n"                                                                                          \
-    "            float bright = float(min(16u, bldy & 0x1Fu));\n"                                                                                      \
-    "            result = floor(base * (16.0 - bright) / 16.0);\n"                                                                                  \
-    "        }\n"                                                                                                                            \
-    "    }\n"                                                                                                                                \
-    "    if (forcedBlank) { result = vec3(31.0); }\n"                                                                                          \
-    "    vec3 srgb = result * (8.0 / 255.0);\n"                                                                                                \
-    "    fragColor = vec4(SrgbToLinear(srgb.r), SrgbToLinear(srgb.g), SrgbToLinear(srgb.b), 1.0);\n"       \
-    "}\n"
+    "    // The software PPU draws the backdrop alone when no background layer\n"                                                                          \
+    "    // is enabled in the region: not even the objects are drawn then.\n"                                                                          \
+    "    bool bgEnabled = (enable & 0x1Fu) != 0u;\n"                                                                          \
+    "    if (!bgEnabled) {\n"                                                                          \
+    "        valids[0] = false; valids[1] = false; valids[2] = false;\n"                                                                          \
+    "        valids[3] = false; valids[4] = false;\n"                                                                          \
+    "    }\n"                                                                          \
+    "    int top = -1;\n"                                                                          \
+    "    int second = -1;\n"                                                                          \
+    "    for (int i = 0; i < 5; i++) {\n"                                                                          \
+    "        if (!valids[i]) { continue; }\n"                                                                          \
+    "        if (top < 0 || keys[i] < keys[top]) { second = top; top = i; }\n"                                                                          \
+    "        else if (second < 0 || keys[i] < keys[second]) { second = i; }\n"                                                                          \
+    "    }\n"                                                                          \
+    "    vec3 backdrop = uBackdrop;\n"                                                                          \
+    "    vec3 base = (top >= 0) ? cols[top] : backdrop;\n"                                                                          \
+    "    vec3 below = (second >= 0) ? cols[second] : backdrop;\n"                                                                          \
+    "    int baseId = (top >= 0) ? ids[top] : 5;\n"                                                                          \
+    "    int belowId = (second >= 0) ? ids[second] : 5;\n"                                                                          \
+    "    bool stTop = false;\n"                                                                          \
+    "    if (top == 4) {\n"                                                                          \
+    "        uint rest = 255u - objAlpha;\n"                                                                          \
+    "        stTop = (rest % 4u) >= 1u;\n"                                                                          \
+    "    }\n"                                                                          \
+    "    uint effect = (bldcnt >> 6) & 3u;\n"                                                                          \
+    "    bool effectsEnabled = (enable & 0x20u) != 0u;\n"                                                                          \
+    "    bool baseFirst = Target1(bldcnt, baseId);\n"                                                                          \
+    "    bool belowSecond = Target2(bldcnt, belowId);\n"                                                                          \
+    "    bool forceBlend = stTop && belowSecond;\n"                                                                          \
+    "    bool alphaBlend = (top >= 0) && baseFirst && belowSecond && (effect == 1u) && effectsEnabled;\n"                                                                          \
+    "    vec3 result = base;\n"                                                                          \
+    "    if (forceBlend || alphaBlend) {\n"                                                                          \
+    "        float a = float(min(16u, bldalpha & 0x1Fu));\n"                                                                          \
+    "        float b = float(min(16u, (bldalpha >> 8) & 0x1Fu));\n"                                                                          \
+    "        vec3 blended = floor((base * a + below * b) / 16.0);\n"                                                                          \
+    "        result = min(blended, vec3(31.0));\n"                                                                          \
+    "    } else if (!bgEnabled) {\n"                                                                          \
+    "        // The backdrop alone: the brightness effect of the PPU is applied\n"                                                                          \
+    "        // here without the window effect bit.\n"                                                                          \
+    "        result = backdrop;\n"                                                                          \
+    "        if (Target1(bldcnt, 5)) {\n"                                                                          \
+    "            float bright = float(min(16u, bldy & 0x1Fu));\n"                                                                          \
+    "            if (effect == 2u) {\n"                                                                          \
+    "                result = min(floor((vec3(31.0) * bright + backdrop * (16.0 - bright)) / 16.0), vec3(31.0));\n"                                                                          \
+    "            } else if (effect == 3u) {\n"                                                                          \
+    "                result = floor(backdrop * (16.0 - bright) / 16.0);\n"                                                                          \
+    "            }\n"                                                                          \
+    "        }\n"                                                                          \
+    "    } else if (effectsEnabled && (effect == 2u || effect == 3u)) {\n"                                                                          \
+    "        // A transparent background layer shows the backdrop with the\n"                                                                          \
+    "        // backdrop flags, so the backdrop is darkened as well.\n"                                                                          \
+    "        bool apply = (top >= 0) ? baseFirst : Target1(bldcnt, 5);\n"                                                                          \
+    "        if (apply) {\n"                                                                          \
+    "            float bright = float(min(16u, bldy & 0x1Fu));\n"                                                                          \
+    "            if (effect == 2u) {\n"                                                                          \
+    "                result = min(floor((vec3(31.0) * bright + base * (16.0 - bright)) / 16.0), vec3(31.0));\n"                                                                          \
+    "            } else {\n"                                                                          \
+    "                result = floor(base * (16.0 - bright) / 16.0);\n"                                                                          \
+    "            }\n"                                                                          \
+    "        }\n"                                                                          \
+    "    }\n"                                                                          \
+    "    if (forcedBlank) { result = vec3(31.0); }\n"                                                                          \
+    "    vec3 srgb = result * (8.0 / 255.0);\n"                                                                          \
+    "    fragColor = vec4(SrgbToLinear(srgb.r), SrgbToLinear(srgb.g), SrgbToLinear(srgb.b), 1.0);\n"                                                                          \
+    "}\n"                                                                          \
 
 #endif // SAR_SHADERS_STAGE1_H
