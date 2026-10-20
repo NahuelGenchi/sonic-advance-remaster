@@ -25,6 +25,7 @@
 #include "platform/shared/video/gpsp_renderer.h"
 #include "oam_bridge.h"
 #include "present.h"
+#include "renderer/bg_sprites_port.h"
 #include "script_input.h"
 
 extern void AgbMain(void);
@@ -431,12 +432,22 @@ void VBlankIntrWait(void)
 
     REG_KEYINPUT = KEYS_MASK ^ Platform_GetKeyInput();
     REG_VCOUNT = DISPLAY_HEIGHT + 1;
+
+    // The game registered its BG sprites during the tick that just ended.
+    // Snapshot them before the VBlank handlers run: upstream clears that
+    // state while it copies the queued character data into VRAM.
+    SarBgSpritesBeginVBlank();
     HandleVBlankInterrupts();
 
     // The engine writes two OAM record layouts in the same build. The
     // bridge converts the GBA-native ones into the extended layout the
     // software PPU reads, and keeps the canonical table for the renderer.
     SarOamBridgeCapture();
+
+    // Compose the BG-sprite layers after the VBlank handlers (so the map is
+    // written after the character data it references) and before the software
+    // PPU draws the frame.
+    SarBgSpritesCompose();
 
     // This matches the M1 headless order: handle the VBlank interrupt first,
     // then render the software PPU frame, then count the VBlank.

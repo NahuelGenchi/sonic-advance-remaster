@@ -1,6 +1,6 @@
 # Renderer architecture
 
-[Back to README](../README.md) · [Tracking](TRACKING.md) · [Frame capture](CAPTURE.md) · [Issue #10](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/10)
+[Back to README](../README.md) · [Tracking](TRACKING.md) · [Frame capture](CAPTURE.md) · [BG sprites](BG-SPRITES.md) · [Issue #10](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/10)
 
 **Status:** architecture decision for M2, with the stage 0 host implemented. The
 host in `remaster/host/` replaces the upstream SDL platform, creates a GL 3.3
@@ -76,6 +76,12 @@ Stage 0 now replaces the presentation owner without replacing the game:
   RGBA8, uploads it to a texture, and draws one nearest-sampled quad at 426x240
   with integer letterboxing. The only shader is the present shader; there is no
   scene shader stack.
+- The host also owns the first piece of renderer-owned game state: the
+  BG-sprite composition of `remaster/renderer/`, which writes the tilemap
+  entries of the full-background pictures the game registers with
+  `DisplaySprite_BG`. It runs between the VBlank interrupt and the software
+  PPU draw; its rules and its recorded verification are in
+  [`docs/BG-SPRITES.md`](BG-SPRITES.md).
 - The 60 Hz game tick is unchanged. Stage 0 paces presentation to 60 Hz and does
   not implement the decoupled high-refresh scheduler. `SAR_VSYNC=0` disables
   FIFO for deterministic recorded runs; the host then uses its own 60 Hz clock.

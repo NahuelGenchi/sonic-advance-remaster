@@ -1,8 +1,11 @@
 # Sonic Advance 1 UI at 426x240
 
-[Back to README](../README.md) · [Renderer](RENDERER.md) · [Frame capture](CAPTURE.md) · [Issue #11](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/11) · [Upstream #274](https://github.com/SAT-R/sa2/issues/274)
+[Back to README](../README.md) · [Renderer](RENDERER.md) · [BG sprites](BG-SPRITES.md) · [Frame capture](CAPTURE.md) · [Issue #11](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/11) · [Upstream #274](https://github.com/SAT-R/sa2/issues/274)
 
-**Status:** research for M2. No fix is shipped. Every "after" frame below
+**Status:** research for M2. The BG-sprite compositor of root cause 3 is
+implemented in [`docs/BG-SPRITES.md`](BG-SPRITES.md) (issue
+[#16](https://github.com/NahuelGenchi/sonic-advance-remaster/issues/16)); the
+UI viewport and the OAM layout are still research. Every "after" frame below
 comes from a local, uncommitted experiment in a private upstream checkout at
 `393357f7c9d46b5c10b6c41a57b80fe3b58f3c8d`; the repository contains the
 documentation and the frames, not the patch. The upstream tree, ROM and saves
@@ -15,7 +18,7 @@ shows together at 426x240:
 | :--- | :--- | :--- | :--- | :--- |
 | Title, main menu, zone select | Art repeats at x >= 256 and the bottom 80 rows are garbage | 240x160 UI maps are sampled by a 426x240 viewport; the shared text-BG path also carries a SA2-specific 512-wide hack | 240x160 UI viewport | Not shipped; follow-up #15 |
 | Stage HUD | Rings, time and the character icon are missing | SA1 HUD writers use the 8-byte GBA `.all.attr*` view; the 426x240 build uses the 12-byte `.split` view | `EXTENDED_OAM FALSE` diagnostic | Canonical OAM bridge in the stage 0 host, [docs/OAM.md](OAM.md); the upstream port is unchanged |
-| Character select | Backdrop is stale, colourful garbage at 240x160 and 426x240 | The BG-sprite compositor is stubbed under `PORTABLE` and the text-BG map fill is disabled, so the backdrop map is never written | Fill the BG1 map with the animation's base tile | Not shipped; follow-up #16 |
+| Character select | Backdrop is stale, colourful garbage at 240x160 and 426x240 | The BG-sprite compositor is stubbed under `PORTABLE` and the text-BG map fill is disabled, so the backdrop map is never written | Fill the BG1 map with the animation's base tile | Composed by the BG-sprite compositor, [docs/BG-SPRITES.md](BG-SPRITES.md) |
 
 The first two are presentation faults in the port; the third is a port/
 decompilation gap that is independent of widescreen. The game-side art and
@@ -171,8 +174,15 @@ At 426x240 the same screen is clean when the UI viewport is applied
 ([after](images/sa1-ui-character-select-426-after.png)).
 
 The local fill is evidence, not a fix: it hardcodes both the tile number and
-the screen. The proper implementation is the BG-sprite compositor, which
-derives map entries from the sprite and writes them per frame (follow-up #16).
+the screen, and it replaces the whole map with one tile, so the picture of
+the animation is lost. The proper implementation is the BG-sprite
+compositor, which derives map entries from the sprite and writes them per
+frame (follow-up #16, implemented in [`docs/BG-SPRITES.md`](BG-SPRITES.md)).
+The recorded run of that implementation shows the authored backdrop, the
+orange emblem of animation 723, at 240x160
+([composed](images/sa1-ui-character-select-native-240x160-composed.png)) and
+through the local UI viewport at 426x240
+([composed](images/sa1-ui-character-select-426-composed.png)).
 Staff credits uses the same `gBgCntRegs[1] = 0x1907` setup
 (`src/game/sa1/ui/staff_credits.c:132-133`) and feeds the same
 `gBgSprites_Unknown*` arrays directly (`:205-209`) instead of calling
@@ -301,9 +311,10 @@ for BG-sprite composition. All three build on the M2 stage 0 host, #13.
 ## What remains open
 
 - No fix is shipped. The after frames are from local experiments, not from the
-  repository's renderer.
-- The character-select compositor is not implemented; the map fill is a
-  stand-in. Staff credits and other BG-sprite screens were not captured.
+  repository's renderer. The character-select compositor is implemented in
+  [`docs/BG-SPRITES.md`](BG-SPRITES.md) (follow-up #16), but the UI viewport
+  and the OAM layout of this document are still local experiments.
+- Staff credits and the other BG-sprite screens were not captured.
 - The 512-wide text-BG path was not tested in isolation. The title's visible
   repeat is explained by the 256-wide BG0 wrap; the title BG2 and the SA2 hack
   need a dedicated parity test.

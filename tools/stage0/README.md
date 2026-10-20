@@ -12,6 +12,11 @@ upstream game core from an external, pinned checkout:
   `VBlankIntrWait` and the software-frame presentation path. It creates an
   OpenGL 3.3 core context, uploads the upstream software PPU's `gameImage` at
   426x240, and draws it with nearest sampling and integer letterboxing.
+- `remaster/renderer/` holds the BG-sprite composition: the project-owned
+  equivalent of the upstream functions that write the tilemap entries of the
+  full-background pictures the game registers. The host calls it between the
+  VBlank interrupt and the software PPU draw. Its rules and its recorded
+  verification are in [`docs/BG-SPRITES.md`](../../docs/BG-SPRITES.md).
 - The game still runs one 60 Hz tick per `VBlankIntrWait`; the host does not
   implement the GPU layer path, high-refresh interpolation, shaders beyond one
   present shader, lighting or upscaled assets. Those are stages 1-4.
