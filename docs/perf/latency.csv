@@ -1,0 +1,7 @@
+run,port,mode,presses,lost,event_n,event_mean_ms,event_p95_ms,event_max_ms,sample_mean_ms,sample_p95_ms,display_mean_ms,display_p50_ms,display_p95_ms,display_max_ms
+sa1-latency-60,SA1,60 Hz vsync,20,0,20,10.001,17.273,17.333,10.004,17.277,25.536,26.302,33.076,33.122
+sa1-latency-120,SA1,120 Hz paced model,20,0,20,5.038,8.025,9.596,9.134,15.482,17.126,17.338,23.804,23.909
+sa1-latency-144,SA1,144 Hz paced model,20,0,20,4.805,7.698,8.504,9.36,17.74,15.834,14.719,24.678,26.951
+sa2-latency-60,SA2,60 Hz vsync,20,0,20,9.801,16.531,17.073,9.804,16.533,25.37,25.666,32.031,32.649
+sa2-latency-120,SA2,120 Hz paced model,20,0,20,5.871,8.951,9.796,9.511,15.636,17.327,17.943,23.951,25.065
+sa2-latency-144,SA2,144 Hz paced model,20,0,20,4.837,7.762,7.968,8.865,16.812,15.384,14.737,23.737,25.715

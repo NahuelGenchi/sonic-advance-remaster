@@ -97,6 +97,8 @@ What exists today is the foundation, the first real frames, and verified windowe
 
 The captures come from the upstream ports as they are today. Sonic Advance's port is the rougher of the two: its menus and some UI render corrupted ([upstream issue #274](https://github.com/SAT-R/sa2/issues/274)) and the HUD is not visible in these frames, so only clean gameplay scenes are shown.
 
+The current ports' measured frame pacing, CPU/GPU cost and input latency are recorded in [docs/PERFORMANCE.md](docs/PERFORMANCE.md). They are measurements of the upstream ports at 426×240, not of the M2 renderer.
+
 ## What the remaster adds
 
 The captures already show the first change: the ports render **426×240**, so each zone shows more to the left and right than the GBA's 240×160, and it is captured at that size.
