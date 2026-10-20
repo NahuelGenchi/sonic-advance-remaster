@@ -75,6 +75,7 @@ static int viewport_y;
 static int viewport_width;
 static int viewport_height;
 static int initialized;
+static int srgb_location = -1;
 
 static int LoadProc(void *slot, const char *name)
 {
@@ -188,8 +189,17 @@ static GLuint BuildProgram(void)
                                          "in vec2 vUV;\n"
                                          "out vec4 fragColor;\n"
                                          "uniform sampler2D uFrame;\n"
+                                         "uniform int uSrgb;\n"
+                                         "vec3 LinearToSrgb(vec3 c)\n"
+                                         "{\n"
+                                         "    vec3 low = c * 12.92;\n"
+                                         "    vec3 high = 1.055 * pow(max(c, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;\n"
+                                         "    return mix(low, high, step(vec3(0.0031308), c));\n"
+                                         "}\n"
                                          "void main(void) {\n"
-                                         "    fragColor = texture(uFrame, vUV);\n"
+                                         "    vec4 texel = texture(uFrame, vUV);\n"
+                                         "    vec3 rgb = (uSrgb != 0) ? LinearToSrgb(texel.rgb) : texel.rgb;\n"
+                                         "    fragColor = vec4(rgb, 1.0);\n"
                                          "}\n";
     GLuint vertex;
     GLuint fragment;
@@ -233,6 +243,13 @@ static GLuint BuildProgram(void)
     location = gl.GetUniformLocation(result, "uFrame");
     if (location < 0) {
         fprintf(stderr, "stage0: shader uniform uFrame is missing\n");
+        gl.DeleteProgram(result);
+        return 0;
+    }
+
+    srgb_location = gl.GetUniformLocation(result, "uSrgb");
+    if (srgb_location < 0) {
+        fprintf(stderr, "stage0: shader uniform uSrgb is missing\n");
         gl.DeleteProgram(result);
         return 0;
     }
@@ -310,34 +327,13 @@ int SarPresentInit(SDL_Window *sdl_window)
     return 1;
 }
 
-void SarPresentFrame(const uint16_t *pixels, int width, int height)
+// Draws a texture over the whole drawable, with integer scaling and
+// letterboxing. srgb converts the texture from linear light to sRGB.
+static void PresentDraw(GLuint source, int width, int height, int srgb)
 {
     int drawable_width = 0;
     int drawable_height = 0;
     int scale;
-    int i;
-
-    if (!initialized) {
-        return;
-    }
-
-    if (width != texture_width || height != texture_height) {
-        fprintf(stderr, "stage0: unexpected frame size %dx%d (expected %dx%d)\n", width, height, texture_width, texture_height);
-        return;
-    }
-
-    for (i = 0; i < width * height; i++) {
-        uint16_t pixel = pixels[i];
-        unsigned char *out = &rgba[i * 4];
-
-        out[0] = (unsigned char)((pixel & 0x1Fu) << 3);
-        out[1] = (unsigned char)(((pixel >> 5) & 0x1Fu) << 3);
-        out[2] = (unsigned char)(((pixel >> 10) & 0x1Fu) << 3);
-        out[3] = 255;
-    }
-
-    gl.BindTexture(GL_TEXTURE_2D, texture);
-    gl.TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
 
     SDL_GL_GetDrawableSize(window, &drawable_width, &drawable_height);
     if (drawable_width <= 0 || drawable_height <= 0) {
@@ -379,9 +375,55 @@ void SarPresentFrame(const uint16_t *pixels, int width, int height)
     gl.Viewport(viewport_x, viewport_y, viewport_width, viewport_height);
     gl.UseProgram(program);
     gl.ActiveTexture(GL_TEXTURE0);
-    gl.BindTexture(GL_TEXTURE_2D, texture);
+    gl.BindTexture(GL_TEXTURE_2D, source);
+    gl.Uniform1i(srgb_location, srgb);
     gl.BindVertexArray(vao);
     gl.DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void SarPresentFrame(const uint16_t *pixels, int width, int height)
+{
+    int i;
+
+    if (!initialized) {
+        return;
+    }
+
+    if (width != texture_width || height != texture_height) {
+        fprintf(stderr, "stage0: unexpected frame size %dx%d (expected %dx%d)\n", width, height, texture_width, texture_height);
+        return;
+    }
+
+    for (i = 0; i < width * height; i++) {
+        uint16_t pixel = pixels[i];
+        unsigned char *out = &rgba[i * 4];
+
+        out[0] = (unsigned char)((pixel & 0x1Fu) << 3);
+        out[1] = (unsigned char)(((pixel >> 5) & 0x1Fu) << 3);
+        out[2] = (unsigned char)(((pixel >> 10) & 0x1Fu) << 3);
+        out[3] = 255;
+    }
+
+    gl.BindTexture(GL_TEXTURE_2D, texture);
+    gl.TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+
+    PresentDraw(texture, width, height, 0);
+}
+
+// Presents the composited scene of the GPU layer path. The scene target
+// holds linear light, so the present shader encodes sRGB.
+void SarPresentGpuFrame(unsigned int source, int width, int height)
+{
+    if (!initialized) {
+        return;
+    }
+
+    if (width != texture_width || height != texture_height) {
+        fprintf(stderr, "stage0: unexpected frame size %dx%d (expected %dx%d)\n", width, height, texture_width, texture_height);
+        return;
+    }
+
+    PresentDraw((GLuint)source, width, height, 1);
 }
 
 int SarPresentCaptureGlPpm(const char *path)

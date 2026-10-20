@@ -14,6 +14,7 @@
 
 int SarPresentInit(SDL_Window *window);
 void SarPresentFrame(const uint16_t *pixels, int width, int height);
+void SarPresentGpuFrame(unsigned int source, int width, int height);
 int SarPresentCaptureGlPpm(const char *path);
 void SarPresentSwap(void);
 void SarPresentShutdown(void);

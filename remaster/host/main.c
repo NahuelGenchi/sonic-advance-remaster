@@ -26,6 +26,8 @@
 #include "oam_bridge.h"
 #include "present.h"
 #include "renderer/bg_sprites_port.h"
+#include "renderer/layer_path.h"
+#include "renderer/snapshot.h"
 #include "script_input.h"
 
 extern void AgbMain(void);
@@ -43,9 +45,13 @@ static int running = 1;
 static int shutting_down;
 static int audio_ready;
 static unsigned long long frame_counter;
-static unsigned long long capture_frame;
+static unsigned long long capture_frames[32];
+static int capture_frame_count;
 static unsigned long long exit_after_frame;
 static const char *capture_dir;
+static int renderer_gl;
+static SarSnapshot snapshot;
+static Uint64 run_start;
 static Uint64 tick_frequency;
 static Uint64 next_tick;
 
@@ -75,6 +81,54 @@ static unsigned long long ReadFrameEnv(const char *name, int *present)
 
     *present = 1;
     return result;
+}
+
+// Parses a comma separated list of VBlank numbers. The stage 0 host
+// accepted a single number here; the list keeps the same meaning for one
+// entry and lets a recorded run capture several reference frames.
+static void ReadCaptureFrames(const char *value)
+{
+    const char *cursor = value;
+
+    while (*cursor != '\0' && capture_frame_count < (int)(sizeof(capture_frames) / sizeof(capture_frames[0]))) {
+        char *end = NULL;
+        unsigned long long frame;
+
+        while (*cursor == ',' || *cursor == ' ') {
+            cursor++;
+        }
+
+        if (*cursor == '\0') {
+            break;
+        }
+
+        frame = strtoull(cursor, &end, 10);
+        if (end == cursor || ((*end != '\0') && (*end != ','))) {
+            fprintf(stderr, "stage0: SAR_CAPTURE_FRAME is not a frame number: %s\n", cursor);
+            Shutdown(2);
+        }
+
+        capture_frames[capture_frame_count++] = frame;
+        cursor = end;
+    }
+
+    if (capture_frame_count == 0) {
+        fprintf(stderr, "stage0: SAR_CAPTURE_FRAME needs at least one frame number\n");
+        Shutdown(2);
+    }
+}
+
+static int IsCaptureFrame(unsigned long long frame)
+{
+    int i;
+
+    for (i = 0; i < capture_frame_count; i++) {
+        if (capture_frames[i] == frame) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 static void SaveOpen(void)
@@ -300,7 +354,7 @@ static void CaptureFrame(void)
     char game_path[1024];
     char gl_path[1024];
 
-    if (capture_dir == NULL || frame_counter != capture_frame) {
+    if (capture_dir == NULL || !IsCaptureFrame(frame_counter)) {
         return;
     }
 
@@ -310,7 +364,9 @@ static void CaptureFrame(void)
         Shutdown(1);
     }
 
-    if (!WriteGameImagePpm(game_path)) {
+    // The GPU path does not run the software PPU, so it has no software
+    // frame to write; the readback of the presented frame is the capture.
+    if (!renderer_gl && !WriteGameImagePpm(game_path)) {
         Shutdown(1);
     }
     if (!SarPresentCaptureGlPpm(gl_path)) {
@@ -372,6 +428,14 @@ static void Shutdown(int code)
         audio_device = 0;
     }
 
+    if (run_start != 0 && tick_frequency != 0) {
+        Uint64 elapsed = SDL_GetPerformanceCounter() - run_start;
+
+        printf("stage1: %llu frames in %.3f s (%.3f Hz)\n", frame_counter, (double)elapsed / (double)tick_frequency,
+               (double)frame_counter * (double)tick_frequency / (double)elapsed);
+    }
+
+    SarLayerPathShutdown();
     SarPresentShutdown();
 
     if (gl_context != NULL) {
@@ -450,9 +514,20 @@ void VBlankIntrWait(void)
     SarBgSpritesCompose();
 
     // This matches the M1 headless order: handle the VBlank interrupt first,
-    // then render the software PPU frame, then count the VBlank.
-    gpsp_draw_frame(gameImage);
-    SarPresentFrame(gameImage, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    // then render the frame, then count the VBlank.
+    if (renderer_gl) {
+        // The GPU layer path replaces the software PPU for this frame. It
+        // captures its own snapshot at the same point and never presents a
+        // frame it could not draw.
+        if (!SarLayerPathRenderFrame(&snapshot)) {
+            fprintf(stderr, "stage1: the GPU layer path failed to render frame %llu\n", frame_counter);
+            Shutdown(1);
+        }
+        SarPresentGpuFrame(SarLayerPathSceneTexture(), DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    } else {
+        gpsp_draw_frame(gameImage);
+        SarPresentFrame(gameImage, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    }
     CaptureFrame();
     SarPresentSwap();
     Pace();
@@ -518,14 +593,55 @@ static void InitVideo(void)
         Shutdown(1);
     }
 
+    {
+        const char *renderer = getenv("SAR_RENDERER");
+
+        if (renderer == NULL || *renderer == '\0' || strcmp(renderer, "software") == 0) {
+            renderer_gl = 0;
+        } else if (strcmp(renderer, "gl") == 0) {
+            renderer_gl = 1;
+        } else {
+            fprintf(stderr, "stage0: SAR_RENDERER must be software or gl\n");
+            Shutdown(2);
+        }
+    }
+
+    if (renderer_gl) {
+        if (!SarLayerPathInit(window)) {
+            const char *fallback = getenv("SAR_ALLOW_SOFTWARE_FALLBACK");
+
+            if (fallback != NULL && strcmp(fallback, "1") == 0) {
+                fprintf(stderr, "stage1: the GPU layer path failed; falling back to the software PPU\n");
+                renderer_gl = 0;
+            } else {
+                fprintf(stderr,
+                        "stage1: the GPU layer path failed; set SAR_ALLOW_SOFTWARE_FALLBACK=1 to use the software PPU\n");
+                Shutdown(1);
+            }
+        } else {
+            printf("stage1: renderer=gl\n");
+        }
+    } else {
+        printf("stage0: renderer=software\n");
+    }
+
     tick_frequency = SDL_GetPerformanceFrequency();
     next_tick = SDL_GetPerformanceCounter();
 
-    capture_frame = ReadFrameEnv("SAR_CAPTURE_FRAME", &capture_present);
     exit_after_frame = ReadFrameEnv("SAR_EXIT_AFTER_FRAME", &exit_present);
     if (!exit_present) {
         exit_after_frame = 0;
     }
+
+    {
+        const char *frames = getenv("SAR_CAPTURE_FRAME");
+
+        if (frames != NULL && *frames != '\0') {
+            capture_present = 1;
+            ReadCaptureFrames(frames);
+        }
+    }
+
     if (capture_present) {
         capture_dir = getenv("SAR_CAPTURE_DIR");
         if (capture_dir == NULL || *capture_dir == '\0') {
@@ -548,6 +664,7 @@ int main(void)
 {
     printf("stage0: Sonic Advance Remaster host, software PPU presentation\n");
     printf("stage0: frame %dx%d, GL 3.3 core, 60 Hz tick\n", DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    run_start = SDL_GetPerformanceCounter();
 
     SaveOpen();
     SarOamBridgeInit();
