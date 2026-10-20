@@ -83,7 +83,9 @@ Stage 1 adds the GPU layer path on top of that host:
   failed shader or an incomplete framebuffer fails closed with a message;
   `SAR_ALLOW_SOFTWARE_FALLBACK=1` falls back to the software PPU.
 - The ten recorded Leaf Forest Act 1 reference frames are identical to the
-  software PPU frames, and the recorded runs hold the 60 Hz tick.
+  software PPU frames, and so are fifteen further frames that cover the act
+  transition, Leaf Forest Act 2 and the boss, which use the windows and the
+  colour effects. The recorded runs hold the 60 Hz tick.
 
 Stage 0 replaces the presentation owner without replacing the game:
 

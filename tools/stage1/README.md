@@ -123,13 +123,21 @@ Implemented and compared against the software PPU:
 * the per-scanline HBlank scroll of Leaf Forest;
 * objects, including their priority order.
 
-Implemented but **not exercised by the Leaf Forest slice** (no reference
-frame exists for them in this repository):
+Compared against the software PPU on the recorded tape (Leaf Forest Act 1,
+the act transition, Leaf Forest Act 2 and the boss):
 
-* affine backgrounds (Leaf Forest runs in video mode 0, where every
+* text backgrounds with the software PPU tile walk, including the widescreen
+  screen bases (the 426 pixel build uses a 6 bit screen base);
+* the per-scanline HBlank scroll of Leaf Forest;
+* objects, including their priority order;
+* the colour effects and the windows, which the boss scene uses.
+
+Implemented but **not exercised by the recorded tape** (no reference frame
+exists for them in this repository):
+
+* affine backgrounds (the recorded scenes run in video mode 0, where every
   background is a text background);
-* alpha blending, brightness and darkness;
-* windows 0 and 1, and the object window;
+* the object window;
 * object mosaic.
 
 Known limits, in order of importance:
@@ -137,8 +145,10 @@ Known limits, in order of importance:
 * The composite pass keeps the frontmost object and the frontmost background
   per pixel. The software PPU keeps the two frontmost pixels of the whole
   stack, so a semi-transparent object over another object is blended against
-  the background instead of the object below it. Leaf Forest does not use
-  semi-transparent objects.
+  the background instead of the object below it, and a transparent background
+  layer shows the backdrop with the backdrop flags where the PPU shows it
+  with the flags of that layer. The recorded scenes do not use semi
+  transparent objects.
 * The mosaic phase of a background is anchored at the screen origin. The
   software PPU anchors it at the start of the window segment, so the two
   differ inside a window.

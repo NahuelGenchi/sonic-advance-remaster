@@ -122,8 +122,17 @@ with both renderers and compared with
 | 2150 | 0 | 0 |
 
 The tolerance is zero: the two renderers agree on every channel of every
-pixel of the ten frames. A wider sweep of the same act (every 100 frames
-from 700 to 2300) is also identical on all seventeen frames.
+pixel of the ten frames.
+
+Two wider sweeps were recorded on the same tape with the same tolerance:
+
+| Sweep | Frames | Result |
+| :--- | ---: | :--- |
+| Leaf Forest Act 1, every 100 frames from 700 to 2300 | 17 | 0 differing pixels on every frame |
+| The act transition, Leaf Forest Act 2 and the boss, every 200 frames from 2400 to 5200 | 15 | 0 differing pixels on every frame |
+
+The second sweep covers the parts of the tape that use the windows and the
+colour effects, so those paths are compared as well and not only implemented.
 
 The classes of difference that the stage had to reproduce, and how:
 
@@ -133,9 +142,20 @@ The classes of difference that the stage had to reproduce, and how:
 | Tile walk | The map walk of the software PPU, including the 32 tile groups and the tail tile of a line, is reproduced in the background shader. |
 | Screen base | The 426 pixel build uses a six bit screen base for text backgrounds; the layer path uses the same mask as the PPU. |
 | Blend | The blend decisions are made on the integer 5-bit colour, with the same target bits as the PPU, and the result is converted to linear float afterwards. |
-| Window | The window masks, the window priority and the window rectangle rules of the PPU are applied per pixel in the composite pass. |
+| Window | The window masks, the window priority and the window rectangle rules of the PPU are applied per pixel in the composite pass, including the case where no background layer is enabled in a region: the PPU then draws the backdrop alone, not even the objects, and applies the brightness effect to it without the window effect bit. |
 | Sprite priority | The objects are drawn back to front (priority number first, then OAM index) and the composite pass orders the layers with the same key the PPU uses. |
 | Filtering | The layer targets are nearest sampled and the present pass is nearest sampled, so no filtering difference is introduced. The linear light round trip of the scene target is exact for the 5-bit colour of this stage. |
+
+### Failure and fallback
+
+A build with a deliberately broken background shader was used to check the
+failure paths. It is a local check, not a committed state of the tree.
+
+| Case | Result |
+| :--- | :--- |
+| `SAR_RENDERER=gl`, broken shader, no fallback | The shader error and the reason are printed, the host exits with status 1 and no frame is presented or captured. |
+| `SAR_RENDERER=gl`, broken shader, `SAR_ALLOW_SOFTWARE_FALLBACK=1` | The host prints that it falls back to the software PPU, continues with it, and the captured software frame 1200 keeps its SHA-256 `134e4df9b462e85f0e7a1a54727beec0c449454a5706d5f64a5f9c7692a81110`. |
+| `SAR_RENDERER=bogus` | The host rejects the value and exits with status 2. |
 
 ### Tick rate
 
@@ -151,10 +171,10 @@ The layer path writes a per-frame cost line to `SAR_PERF_LOG`. A recorded
 
 | Stage | Mean | p50 | p99 | Max |
 | :--- | ---: | ---: | ---: | ---: |
-| Snapshot capture | 2.8 | 2.9 | 5.3 | 11.6 |
-| Upload | 125.9 | 119.8 | 246.8 | 386.5 |
-| Render submission | 2.0 | 1.8 | 6.7 | 15.6 |
-| GPU (timer query) | 255.0 | 251.6 | 331.4 | 346.7 |
+| Snapshot capture | 3.0 | 3.0 | 5.9 | 8.5 |
+| Upload | 127.4 | 123.0 | 249.1 | 289.1 |
+| Render submission | 2.1 | 1.8 | 5.3 | 15.1 |
+| GPU (timer query) | 164.1 | 167.1 | 204.3 | 277.8 |
 
 These are the numbers of this stage at the native resolution, not the
 performance baseline of the renderer: the slice still has to measure the
@@ -164,11 +184,13 @@ hashing; it can be replaced by a write hook when the game exposes one.
 
 ## What is not verified
 
-* No frame of another zone, the act transition, the boss or the menus was
-  compared in this repository; only Leaf Forest Act 1 was recorded.
-* Affine backgrounds, alpha blending, brightness, the windows and the
-  object window are implemented but the Leaf Forest slice does not exercise
-  them, so there is no reference frame for them.
+* No frame of another zone, the menus or the interactive build was compared
+  in this repository. The recorded sweeps cover Leaf Forest Act 1, the act
+  transition, Leaf Forest Act 2 and the Leaf Forest boss of the SA2 tape.
+* Affine backgrounds and the object window are implemented, but no frame of
+  the recorded tape exercises them, so they have no reference frame. The
+  colour effects and the windows are exercised by the boss scene and are
+  compared.
 * Nothing was measured at a resolution other than the native 426x240.
 * There is no subpixel camera, no high-refresh schedule and no lighting yet.
 
