@@ -5,9 +5,10 @@ that the project can replace the upstream SDL platform while linking the
 upstream game core from an external, pinned checkout:
 
 - `tools/stage0/build.sh` validates the checkout, snapshots it outside this
-  repository, builds the upstream SDL objects, archives the core without
-  `src/platform/pret_sdl/sdl2.o`, compiles the host from `remaster/host/`, and
-  links the executable.
+  repository, builds the selected upstream SDL objects, archives the core
+  without `src/platform/pret_sdl/sdl2.o`, compiles the host from
+  `remaster/host/`, and links the executables. `SAR_GAME` selects `sa2`
+  (default), `sa1`, or `both`.
 - `remaster/host/` owns `main`, SDL video/input/audio, the save file,
   `VBlankIntrWait` and the presentation path. It creates an OpenGL 3.3 core
   context and draws either the upstream software PPU's `gameImage` at 426x240
@@ -37,6 +38,10 @@ upstream game core from an external, pinned checkout:
   checks SHA-1 `7bcd6a07af7c894746fa28073fe0c0e34408022d` and copies it into the
   disposable snapshot as `baserom_sa2.gba`. The portable decomp build itself
   does not read the ROM.
+- Optional: your own Sonic Advance (Europe) ROM. If `SA1_ROM` is set, the driver
+  checks SHA-1 `eb00f101af23d728075ac2117e27ecd8a4b4c3e9` and copies it into the
+  disposable snapshot as `baserom_sa1.gba`. The portable decomp build itself
+  does not read the ROM.
 
 ## Build
 
@@ -49,31 +54,62 @@ SAR_BUILD_ROOT=/tmp/sar-stage0 \
 tools/stage0/build.sh
 ```
 
-The default build root is `${TMPDIR:-/tmp}/sar-stage0`; it is always outside the
-repository. `SAR_TAS_TESTING=1` is the default and embeds the recorded any% tape.
-Set `SAR_TAS_TESTING=0` for an interactive build where the keyboard drives the
-game.
+For Sonic Advance 1, select the game and supply its ROM:
 
-Expected tail:
+```sh
+SAR_GAME=sa1 \
+SA2_UPSTREAM=/tmp/sa2 \
+SA1_ROM="/path/to/Sonic Advance (Europe) (En,Ja,Fr,De,Es).gba" \
+SAR_BUILD_ROOT=/tmp/sar-stage0-sa1 \
+tools/stage0/build.sh
+```
+
+`SAR_GAME=both` builds both cores from one snapshot and writes both binaries:
+
+```sh
+SAR_GAME=both \
+SA2_UPSTREAM=/tmp/sa2 \
+SA1_ROM="/path/to/Sonic Advance (Europe) (En,Ja,Fr,De,Es).gba" \
+SA2_ROM="/path/to/Sonic Advance 2 (USA) (En,Ja,Fr,De,Es,It).gba" \
+SAR_BUILD_ROOT=/tmp/sar-stage0-both \
+tools/stage0/build.sh
+```
+
+The default build root is `${TMPDIR:-/tmp}/sar-stage0`; it is always outside the
+repository. `SAR_TAS_TESTING=1` is the default and embeds the recorded Sonic
+Advance 2 any% tape. Set `SAR_TAS_TESTING=0` for an interactive Sonic Advance 2
+build where the keyboard drives the game. The Sonic Advance 1 target has no
+tape and is always built interactive; `SAR_SCRIPT=sa1` replays its capture
+schedule at run time.
+
+Expected tail for the default (Sonic Advance 2) target:
 
 ```text
-stage0: archiving ... upstream objects (sdl2.o excluded)
-stage0: compiling the host
-stage0: compiling the stage 1 layer path
-stage0: linking the host against the core archive
-stage0: ok; binary /tmp/sar-stage0/sa2-stage0
+stage0: archiving ... sa2 upstream objects (sdl2.o excluded)
+stage0: compiling the sa2 host
+stage0: compiling the sa2 stage 1 layer path
+stage0: linking the sa2 host against the core archive
+stage0: ok; sa2 binary /tmp/sar-stage0/sa2-stage0
 ```
 
 Everything is written under `SAR_BUILD_ROOT`: `source/` (the disposable
-snapshot), `host/` (host objects), `libsa2core.a`, `sa2-stage0`,
-`upstream-build.log` and `provenance.txt`. No upstream file, ROM, save or build
-output is committed.
+snapshot), `host/<game>/` (host objects), `lib<game>core.a`, `<game>-stage0`,
+`upstream-build-<game>.log` and `provenance-<game>.txt`. A single-target build
+also writes `upstream-build.log` and `provenance.txt` for compatibility. No
+upstream file, ROM, save or build output is committed.
 
 ## Run
 
 ```sh
 cd /tmp/sar-stage0
 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav ./sa2-stage0
+```
+
+For Sonic Advance 1:
+
+```sh
+cd /tmp/sar-stage0-sa1
+SAR_SAVE_PATH=/tmp/sar-stage0-sa1/sa1.sav ./sa1-stage0
 ```
 
 The window is 426x240 and resizable; Escape or closing the window exits. The
@@ -98,6 +134,20 @@ feature:
 | `SAR_VSYNC` | `1` (default) requests FIFO; `0` disables FIFO and uses the host's 60 Hz clock. Use `0` for recorded capture and audio runs so an occluded window cannot throttle the run. |
 | `SAR_OAM_BRIDGE` | `0` disables the canonical OAM bridge. By default the host converts the GBA-native OAM records of the engine into the extended layout before the software PPU draws; see [docs/OAM.md](../../docs/OAM.md). |
 | `SAR_SCRIPT` | `sa1` replays the Sonic Advance 1 capture input schedule instead of the keyboard, for deterministic recorded runs. |
+
+A Sonic Advance 1 scripted frame check:
+
+```sh
+mkdir -p /tmp/sar-stage0-sa1/capture
+SAR_CAPTURE_DIR=/tmp/sar-stage0-sa1/capture \
+SAR_CAPTURE_FRAME=1400 \
+SAR_EXIT_AFTER_FRAME=1400 \
+SAR_SAVE_PATH=/tmp/sar-stage0-sa1/sa1.sav \
+SAR_SCRIPT=sa1 \
+SAR_VSYNC=0 \
+SDL_VIDEODRIVER=x11 \
+./sa1-stage0
+```
 
 A tape frame check:
 
@@ -133,9 +183,12 @@ The build stops if:
   or it has tracked modifications.
 - `SAR_BUILD_ROOT` is inside the upstream checkout, this repository, or any of
   its worktrees.
-- A required upstream file or the upstream build output is missing.
+- `SAR_GAME` is not `sa1`, `sa2` or `both`.
+- A required upstream file or the upstream build output for a selected game is
+  missing.
+- `SA1_ROM` is set but its SHA-1 is not the expected Europe ROM.
 - `SA2_ROM` is set but its SHA-1 is not the expected USA ROM.
-- The core archive defines `main`, or the host fails to compile or link.
+- A core archive defines `main`, or the host fails to compile or link.
 - The build changes tracked files in the upstream checkout.
 
 `-Wl,--no-undefined` makes a missing platform symbol a link failure instead of
@@ -150,6 +203,9 @@ a runtime surprise.
 - The layer path is verified on the Leaf Forest Act 1 slice only; the affine
   background, colour effect, window and object window paths are implemented
   but the recorded scene does not exercise them.
-- No Sonic Advance 1 build and no packaging.
+- The Sonic Advance 1 target is built and run through the same host, but its
+  own UI and rendering verification is limited to the recorded frames in
+  [`docs/SA1-UI.md`](../../docs/SA1-UI.md) and [`docs/OAM.md`](../../docs/OAM.md).
+- No packaging.
 - The windowed run is Linux/X11 through XWayland on the recorded host; native
   Wayland, Windows and macOS were not checked.

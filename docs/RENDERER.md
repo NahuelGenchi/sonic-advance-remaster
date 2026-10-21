@@ -201,18 +201,18 @@ sonic-advance-remaster/                    /path/to/sa2/
 │   ├── renderer_harness/
 │   └── stage0/
 └── build/  (git-ignored objects)          /path/to/build-root/
-                                           ├── source/        clean snapshot
-                                           ├── host/          host objects
-                                           ├── libsa2core.a   game core
-                                           ├── sa2-stage0     host binary
-                                           └── provenance.txt
+                                           ├── source/          clean snapshot
+                                           ├── host/<game>/     host objects
+                                           ├── lib<game>core.a  game core
+                                           ├── <game>-stage0    host binary
+                                           └── provenance-<game>.txt
 ```
 
 ### Build stages
 
-The stage 0 driver implements steps 1-7 for Sonic Advance 2. The harness keeps
-the same boundary at minimum scale, and Sonic Advance 1 is not wired into the
-stage 0 driver yet.
+The stage 0 driver implements steps 1-7 for the selected game: `sa2` by
+default, `sa1`, or `both` from one snapshot. The harness keeps the same boundary
+at minimum scale.
 
 1. **Validate.** `SA2_UPSTREAM` must resolve to a git work tree outside this
    repository, `HEAD` must equal the pin, and tracked files must be clean. A
@@ -225,10 +225,11 @@ stage 0 driver yet.
    commit.
 3. **Build the reference port.** `make sdl GAME_NAME=sa2` (and `sa1` for the
    second port) in the snapshot produces the upstream objects and a reference
-   binary. Stage 0 passes `TAS_TESTING=1` for the slice build. This is the same
-   build documented in `docs/CAPTURE.md`, with the same pinned commit and the
-   user's own ROM; the portable decomp build does not read the ROM, but the
-   driver validates it when `SA2_ROM` is supplied.
+   binary. Stage 0 passes `TAS_TESTING=1` for the SA2 slice build and always
+   builds SA1 interactive. This is the same build documented in
+   `docs/CAPTURE.md`, with the same pinned commit and the user's own ROM; the
+   portable decomp build does not read the ROM, but the driver validates it when
+   `SA1_ROM` or `SA2_ROM` is supplied.
 4. **Archive the core.** `ar` collects the upstream objects except
    `src/platform/pret_sdl/sdl2.o`. The archive is the unmodified game logic,
    software PPU and shared platform helpers. The platform object is the only
