@@ -6,12 +6,22 @@
  *
  * It owns three things the pure module must not know about:
  *
- *   1. the scene. The engine has no scene flag, so the seam reads the
- *      engine's own stage task: the game creates it when a stage starts and
- *      destroys it when the stage ends, so it is the engine's statement of
- *      whether the 426x240 world is on screen. Sonic Advance 1 authors its
- *      menus on the 240x160 field, Sonic Advance 2 authors its screens for
- *      the widescreen world.
+ *   1. the scene. The engine has no scene flag, so the seam reads engine
+ *      state that the screens themselves set:
+ *
+ *        - the stage task, which CreateGameStage creates and the stage
+ *          destroys. It also covers the stage intro, which the stage
+ *          creates, so the intro and the game stay on the 426x240 world;
+ *        - in Sonic Advance 2, the display mode. The title screen and the
+ *          multiplayer screens switch the GBA to mode 1 (the affine BG2
+ *          mode) and lay their elements out on the 426x240 frame, so they
+ *          stay on the world. The language select, character select and
+ *          options screens stay in mode 0 and author their maps on the
+ *          240x160 field, so they are composed on the field.
+ *
+ *      Sonic Advance 1 keeps the stage-task rule: its menus and select
+ *      screens were verified on the field, and the display mode is not
+ *      needed to separate them from its stages.
  *
  *   2. the scanline loop. The field is composed while the engine's H-blank
  *      handler runs, so the per-scanline scroll registers the engine writes
@@ -55,14 +65,34 @@ static int32_t sign_extend_28(uint32_t value)
 
 SarUiScene sar_ui_viewport_port_scene(void)
 {
-#if (GAME == GAME_SA1)
+    /*
+     * The stage task is created by CreateGameStage, which also creates the
+     * stage intro, and destroyed when the stage ends. It is the engine's
+     * statement that the 426x240 world, not a menu, is on screen.
+     */
     if (gGameStageTask != NULL) {
         return SAR_UI_SCENE_GAMEPLAY;
     }
-    return SAR_UI_SCENE_FIELD;
-#else
-    return SAR_UI_SCENE_GAMEPLAY;
+
+#if (GAME == GAME_SA2)
+    /*
+     * The title screen (title_screen.c sets DISPCNT_MODE_1) and the
+     * multiplayer screens (mode_select.c and multiplayer_lobby.c build
+     * their display control on mode 1) are authored for the widescreen
+     * frame: the title's logo, PRESS START and cloud scroll are positioned
+     * against DISPLAY_WIDTH, and its text backgrounds load DISPLAY_WIDTH/8
+     * tile columns. The language select, character select and options
+     * screens set gDispCnt to 0x1740, whose mode bits are 0: they author
+     * 30x20 and 32x32 maps on the 240x160 field, and composing them there
+     * keeps the sampler inside the maps instead of wrapping them at 256
+     * columns or reading rows the screen never wrote.
+     */
+    if ((gDispCnt & 0x7) == DISPCNT_MODE_1) {
+        return SAR_UI_SCENE_GAMEPLAY;
+    }
 #endif
+
+    return SAR_UI_SCENE_FIELD;
 }
 
 const uint16_t *sar_ui_viewport_port_field(void)

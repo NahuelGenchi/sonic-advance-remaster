@@ -16,8 +16,10 @@ extern "C" {
 
 /*
  * The scene the engine is in. The engine has no scene flag, so the seam
- * reads the engine's stage task, which the game creates when a stage starts
- * and destroys when the stage ends.
+ * reads engine state the screens set: the stage task (which also covers the
+ * stage intro), and in Sonic Advance 2 the display mode, where mode 1 marks
+ * the screens authored for the 426x240 world and mode 0 marks the screens
+ * authored on the 240x160 field.
  */
 SarUiScene sar_ui_viewport_port_scene(void);
 
