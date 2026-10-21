@@ -192,6 +192,7 @@ printf 'stage0: compiling the host\n'
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/present.c" -o "$build_root/host/present.o"
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/oam_bridge.c" -o "$build_root/host/oam_bridge.o"
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/script_input.c" -o "$build_root/host/script_input.o"
+"$CC" "${host_flags[@]}" -c "$repo_root/remaster/host/pad_input.c" -o "$build_root/host/pad_input.o"
 "$CC" "${host_flags[@]}" -c "$repo_root/remaster/renderer/oam.c" -o "$build_root/host/oam.o"
 
 printf 'stage0: compiling the BG-sprite composition module\n'
@@ -210,6 +211,7 @@ printf 'stage0: compiling the UI viewport module\n'
 printf 'stage0: linking the host against the core archive\n'
 "$CC" "$build_root/host/main.o" "$build_root/host/present.o" \
     "$build_root/host/oam_bridge.o" "$build_root/host/script_input.o" \
+    "$build_root/host/pad_input.o" \
     "$build_root/host/oam.o" \
     "$build_root/host/bg_sprites.o" "$build_root/host/bg_sprites_port.o" \
     "$build_root/host/layer_path.o" "$build_root/host/snapshot.o" "$build_root/host/gl_api.o" \
@@ -242,6 +244,8 @@ hash_file() {
     printf 'oam_bridge.h=%s\n' "$(hash_file "$repo_root/remaster/host/oam_bridge.h")"
     printf 'script_input.c=%s\n' "$(hash_file "$repo_root/remaster/host/script_input.c")"
     printf 'script_input.h=%s\n' "$(hash_file "$repo_root/remaster/host/script_input.h")"
+    printf 'pad_input.c=%s\n' "$(hash_file "$repo_root/remaster/host/pad_input.c")"
+    printf 'pad_input.h=%s\n' "$(hash_file "$repo_root/remaster/host/pad_input.h")"
     printf 'oam.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/oam.c")"
     printf 'oam.h=%s\n' "$(hash_file "$repo_root/remaster/renderer/oam.h")"
     printf 'bg_sprites.c=%s\n' "$(hash_file "$repo_root/remaster/renderer/bg_sprites.c")"

@@ -80,6 +80,21 @@ The window is 426x240 and resizable; Escape or closing the window exits. The
 default key map is the upstream one: C = A, X = B, Return = Start, Backslash =
 Select, S = L, D = R, arrows = D-pad.
 
+A standard SDL game controller is accepted alongside the keyboard, and the
+first controller that is present is used. Hotplug adds or removes it; a
+missing controller never blocks start-up.
+
+| Controller | GBA | Notes |
+| :--- | :--- | :--- |
+| D-pad, left stick | D-pad | Both work; the stick uses a deadzone of 8000. |
+| A (bottom face) | B | Physical-position mapping. |
+| B (right face) | A | Physical-position mapping. |
+| Start, Back | Start, Select | |
+| Left/right shoulder, left/right trigger | L, R | Triggers use a threshold of 8000. |
+
+X, Y, the guide button and the right stick are not mapped. `SAR_SCRIPT` still
+takes precedence over both the keyboard and the controller.
+
 ## Verification helpers
 
 These environment variables exist for recorded checks, not as a user-facing
@@ -153,3 +168,6 @@ a runtime surprise.
 - No Sonic Advance 1 build and no packaging.
 - The windowed run is Linux/X11 through XWayland on the recorded host; native
   Wayland, Windows and macOS were not checked.
+- No physical game controller was available for this record. The mapping module
+  is unit-tested (`tools/pad_test.sh`), and the controller open, hotplug and
+  event path compiles and links, but it has not been exercised with hardware.

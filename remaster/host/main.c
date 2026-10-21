@@ -24,6 +24,7 @@
 #include "platform/shared/dma.h"
 #include "platform/shared/video/gpsp_renderer.h"
 #include "oam_bridge.h"
+#include "pad_input.h"
 #include "present.h"
 #include "renderer/bg_sprites_port.h"
 #include "renderer/layer_path.h"
@@ -39,6 +40,8 @@ ALIGNED(256) uint16_t gameImage[DISPLAY_WIDTH * DISPLAY_HEIGHT];
 static SDL_Window *window;
 static SDL_GLContext gl_context;
 static SDL_AudioDeviceID audio_device;
+static SDL_GameController *controller;
+static SarPadState pad_state;
 static FILE *save_file;
 static FILE *key_log;
 static u16 keys;
@@ -60,7 +63,19 @@ static Uint64 next_tick;
 static void SaveOpen(void);
 static void SaveStore(void);
 static void SaveClose(void);
+static void PadInit(void);
+static void PadHandleEvent(const SDL_Event *event);
 static void Shutdown(int code);
+
+/* The logical controller buttons in SarPadButton order. The face buttons map
+ * by physical position: SDL A is the bottom button (GBA B) and SDL B is the
+ * right button (GBA A). X, Y, the guide button and the right stick are not
+ * mapped. */
+static const u16 pad_key_bits[SAR_PAD_BUTTON_COUNT] = {
+    DPAD_UP,       DPAD_DOWN,      DPAD_LEFT,      DPAD_RIGHT,
+    A_BUTTON,      B_BUTTON,       START_BUTTON,   SELECT_BUTTON,
+    L_BUTTON,      R_BUTTON,
+};
 
 void DoSoftReset(void) {}
 
@@ -230,11 +245,156 @@ static void SetKey(u16 bit, int down)
     }
 }
 
+static SarPadButton PadButtonFromSdl(Uint8 button)
+{
+    switch (button) {
+        case SDL_CONTROLLER_BUTTON_DPAD_UP:
+            return SAR_PAD_UP;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+            return SAR_PAD_DOWN;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+            return SAR_PAD_LEFT;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+            return SAR_PAD_RIGHT;
+        case SDL_CONTROLLER_BUTTON_A:
+            return SAR_PAD_B;
+        case SDL_CONTROLLER_BUTTON_B:
+            return SAR_PAD_A;
+        case SDL_CONTROLLER_BUTTON_START:
+            return SAR_PAD_START;
+        case SDL_CONTROLLER_BUTTON_BACK:
+            return SAR_PAD_SELECT;
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+            return SAR_PAD_L;
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+            return SAR_PAD_R;
+        default:
+            return SAR_PAD_BUTTON_COUNT;
+    }
+}
+
+static void PadOpen(int device_index)
+{
+    const char *name;
+
+    if (controller != NULL) {
+        return;
+    }
+
+    controller = SDL_GameControllerOpen(device_index);
+    if (controller == NULL) {
+        fprintf(stderr, "stage0: could not open controller %d: %s\n", device_index, SDL_GetError());
+        return;
+    }
+
+    SarPadClear(&pad_state);
+    name = SDL_GameControllerName(controller);
+    printf("stage0: controller %s\n", name != NULL ? name : "(unnamed)");
+}
+
+static void PadClose(void)
+{
+    if (controller != NULL) {
+        SDL_GameControllerClose(controller);
+        controller = NULL;
+    }
+    SarPadClear(&pad_state);
+}
+
+static void PadInit(void)
+{
+    int i;
+
+    SarPadClear(&pad_state);
+
+    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) < 0) {
+        printf("stage0: controller input unavailable: %s\n", SDL_GetError());
+        return;
+    }
+
+    for (i = 0; i < SDL_NumJoysticks(); i++) {
+        if (SDL_IsGameController(i)) {
+            PadOpen(i);
+            break;
+        }
+    }
+
+    if (controller == NULL) {
+        printf("stage0: no controller; keyboard only\n");
+    }
+}
+
+static void PadHandleEvent(const SDL_Event *event)
+{
+    SarPadButton button;
+
+    switch (event->type) {
+        case SDL_CONTROLLERDEVICEADDED:
+            PadOpen(event->cdevice.which);
+            break;
+        case SDL_CONTROLLERDEVICEREMOVED:
+            if (controller != NULL) {
+                SDL_Joystick *joystick = SDL_GameControllerGetJoystick(controller);
+                SDL_JoystickID instance = joystick != NULL ? SDL_JoystickInstanceID(joystick) : -1;
+
+                if (instance == event->cdevice.which) {
+                    PadClose();
+                }
+            }
+            break;
+        case SDL_CONTROLLERBUTTONDOWN:
+        case SDL_CONTROLLERBUTTONUP:
+            button = PadButtonFromSdl(event->cbutton.button);
+            if (button != SAR_PAD_BUTTON_COUNT) {
+                SarPadSetButton(&pad_state, button, event->type == SDL_CONTROLLERBUTTONDOWN);
+            }
+            break;
+        case SDL_CONTROLLERAXISMOTION:
+            switch (event->caxis.axis) {
+                case SDL_CONTROLLER_AXIS_LEFTX:
+                    SarPadSetAxes(&pad_state, event->caxis.value, pad_state.axis_y);
+                    break;
+                case SDL_CONTROLLER_AXIS_LEFTY:
+                    SarPadSetAxes(&pad_state, pad_state.axis_x, event->caxis.value);
+                    break;
+                case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+                    SarPadSetTriggers(&pad_state, event->caxis.value, pad_state.trigger_r);
+                    break;
+                case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                    SarPadSetTriggers(&pad_state, pad_state.trigger_l, event->caxis.value);
+                    break;
+            }
+            break;
+    }
+}
+
+static u16 ControllerKeys(void)
+{
+    uint32_t mask;
+    u16 result = 0;
+    int button;
+
+    if (controller == NULL) {
+        return 0;
+    }
+
+    mask = SarPadButtonMask(&pad_state);
+    for (button = 0; button < SAR_PAD_BUTTON_COUNT; button++) {
+        if (mask & ((uint32_t)1u << (unsigned int)button)) {
+            result |= pad_key_bits[button];
+        }
+    }
+
+    return result;
+}
+
 static void ProcessEvents(void)
 {
     SDL_Event event;
 
     while (SDL_PollEvent(&event)) {
+        PadHandleEvent(&event);
+
         switch (event.type) {
             case SDL_QUIT:
                 running = 0;
@@ -436,6 +596,9 @@ static void Shutdown(int code)
         audio_device = 0;
     }
 
+    PadClose();
+    SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+
     if (run_start != 0 && tick_frequency != 0) {
         Uint64 elapsed = SDL_GetPerformanceCounter() - run_start;
 
@@ -479,19 +642,23 @@ void Platform_QueueAudio(const s16 *data, u32 numBytes)
 
 u16 Platform_GetKeyInput(void)
 {
+    u16 input;
+
     if (SarScriptEnabled()) {
         // A recorded run replays the documented capture script instead of
-        // the keyboard.
+        // the keyboard or a controller.
         return (u16)SarScriptedKeys(frame_counter);
     }
 
-    if (key_log != NULL && keys != last_logged_keys) {
-        fprintf(key_log, "frame=%llu keys=%04x\n", frame_counter, keys);
+    input = (u16)(keys | ControllerKeys());
+
+    if (key_log != NULL && input != last_logged_keys) {
+        fprintf(key_log, "frame=%llu keys=%04x\n", frame_counter, input);
         fflush(key_log);
-        last_logged_keys = keys;
+        last_logged_keys = input;
     }
 
-    return keys;
+    return input;
 }
 
 void VBlankIntrWait(void)
@@ -693,6 +860,7 @@ int main(void)
     SarScriptInit();
     InitVideo();
     AudioInit();
+    PadInit();
 
     REG_RCNT = 0x8000;
     REG_KEYINPUT = 0x3FF;
