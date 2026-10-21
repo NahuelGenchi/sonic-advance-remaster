@@ -564,7 +564,7 @@ void VBlankIntrWait(void)
 static void InitVideo(void)
 {
     Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_SHOWN;
-    int capture_present;
+    int capture_present = 0;
     int exit_present;
     const char *path;
 
