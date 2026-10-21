@@ -129,7 +129,8 @@ make -j"$(nproc)" sdl GAME_NAME=sa2 TAS_TESTING=1
 
 `TAS_TESTING=1` builds the SA2 port with its recorded input tape, which is how the SA2 captures were made without a keyboard; a build without it is what the interactive window check uses. The full recipe, the local capture hook, the environment variables and the frame behind every image are in [docs/CAPTURE.md](docs/CAPTURE.md).
 
-To build the stage 0 host, which keeps the same tape but replaces the upstream SDL presentation with a GL 3.3 core window:
+To build the stage 0 host, which keeps the capture tape for the Sonic Advance 2
+slice and replaces the upstream SDL presentation with a GL 3.3 core window:
 
 ```sh
 SA2_UPSTREAM=/tmp/sa2 \
@@ -139,6 +140,21 @@ tools/stage0/build.sh
 
 cd /tmp/sar-stage0
 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav ./sa2-stage0
+```
+
+The same driver builds Sonic Advance 1 with `SAR_GAME=sa1` (or both games with
+`SAR_GAME=both`); the Sonic Advance 1 target has no tape and is always
+interactive, and its capture schedule is replayed with `SAR_SCRIPT=sa1`:
+
+```sh
+SAR_GAME=sa1 \
+SA2_UPSTREAM=/tmp/sa2 \
+SA1_ROM="/path/to/Sonic Advance (Europe) (En,Ja,Fr,De,Es).gba" \
+SAR_BUILD_ROOT=/tmp/sar-stage0-sa1 \
+tools/stage0/build.sh
+
+cd /tmp/sar-stage0-sa1
+SAR_SAVE_PATH=/tmp/sar-stage0-sa1/sa1.sav ./sa1-stage0
 ```
 
 By default this is still software-PPU presentation. `SAR_RENDERER=gl` selects the stage 1 GPU layer path instead, and `SAR_RENDERER=software` selects the software PPU. [tools/stage0/README.md](tools/stage0/README.md) lists the fail-closed checks, the capture helpers and the current limitations, and [tools/stage1/README.md](tools/stage1/README.md) documents the layer path, the switch and the frame comparison.

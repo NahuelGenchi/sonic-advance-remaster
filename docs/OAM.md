@@ -167,19 +167,22 @@ buffer is byte for byte the engine's.
 
 ### Sonic Advance 1 stage HUD
 
-The stage 0 driver builds Sonic Advance 2 only, so the Sonic Advance 1 run
-uses the same upstream snapshot with the game's own build settings. The
-commands are in the delivery record of issue #14; the core archive is the
-upstream `sa1` build without `src/platform/pret_sdl/sdl2.o`, and the host
-is compiled with `-DGAME=GAME_SA1 -DEUROPE -DENABLE_DECOMP_CREDITS=0`.
+The stage 0 driver builds the Sonic Advance 1 target with `SAR_GAME=sa1`; it
+uses the upstream `sa1` build without `src/platform/pret_sdl/sdl2.o`, and the
+host is compiled with `-DGAME=GAME_SA1 -DEUROPE -DENABLE_DECOMP_CREDITS=0`.
 
 ```sh
-cd /home/rayzza/sar-builds/agent-01/sa1-stage0
+SAR_GAME=sa1 SA2_UPSTREAM=/tmp/sa2 SAR_BUILD_ROOT=/tmp/sar-stage0-sa1 \
+  tools/stage0/build.sh
+cd /tmp/sar-stage0-sa1
 SDL_VIDEODRIVER=x11 SDL_AUDIODRIVER=dummy SAR_VSYNC=0 SAR_SCRIPT=sa1 \
   SAR_CAPTURE_DIR=./cap-bridge SAR_CAPTURE_FRAME=1400 \
   SAR_EXIT_AFTER_FRAME=1400 SAR_SAVE_PATH=./sa1-bridge.sav \
   ./sa1-stage0
 ```
+
+The run that produced the hashes below predates the driver target and used the
+same build settings at `/home/rayzza/sar-builds/agent-01/sa1-stage0`.
 
 `SAR_SCRIPT=sa1` replays the input schedule of the M1 capture path, so the
 run reaches the same stage at the same VBlank as the recorded
