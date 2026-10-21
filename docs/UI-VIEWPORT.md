@@ -184,8 +184,11 @@ SAR_VSYNC=0 SDL_VIDEODRIVER=x11 ./sa2-stage0
 The language select and character select frames change because the duplicate
 columns and the unwritten rows are gone: the field is composed at its authored
 240x160 and presented centred in the 426x240 frame, and the rows and columns
-outside its maps are never sampled. The title, stage and gameplay frames are
-byte for byte the frames of the before run. The stage intro is created inside
+outside its maps are never sampled. The character-select banner is an OAM
+sprite whose widescreen exit runs past the field's right edge; the field clips
+it at x = 240, as the native 240 build does, and does not move it back into
+the frame. The title, stage and gameplay frames are byte for byte the frames
+of the before run. The stage intro is created inside
 the stage task (`src/game/shared/stage/stage.c:384`), so the stage-task branch
 returns the world for it; the separate before run in
 `/home/rayzza/sar-builds/launch-intro` records those intro frames in the
