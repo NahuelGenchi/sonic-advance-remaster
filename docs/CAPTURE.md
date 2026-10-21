@@ -37,8 +37,10 @@ make -j"$(nproc)" sdl GAME_NAME=sa2 TAS_TESTING=1
 ```
 
 `TAS_TESTING=1` compiles the SA2 port with the recorded any% tape embedded in
-`gInputPlaybackData` (`src/input_recorder.c`); the game plays itself. SA1 has no
-such tape, so its run uses scripted input.
+`gInputPlaybackData` (`src/input_recorder.c`); the game plays itself. It is a
+capture-only build: the stage 0 driver defaults `SAR_TAS_TESTING` to `0` and
+requires an explicit `1` for the tape. SA1 has no such tape, so its run uses
+scripted input.
 
 Both outputs are desktop SDL binaries at the port's widescreen size, 426x240.
 

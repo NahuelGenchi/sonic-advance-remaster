@@ -50,9 +50,10 @@ tools/stage0/build.sh
 ```
 
 The default build root is `${TMPDIR:-/tmp}/sar-stage0`; it is always outside the
-repository. `SAR_TAS_TESTING=1` is the default and embeds the recorded any% tape.
-Set `SAR_TAS_TESTING=0` for an interactive build where the keyboard drives the
-game.
+repository. `SAR_TAS_TESTING=0` is the default: the keyboard drives the game.
+Set `SAR_TAS_TESTING=1` only for a deterministic recorded run. That build embeds
+the upstream any% tape, and `GameInit` plays it instead of the normal startup,
+so the game manages itself from the first frame.
 
 Expected tail:
 

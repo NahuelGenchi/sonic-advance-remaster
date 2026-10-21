@@ -17,7 +17,7 @@
 #   SA2_ROM         Optional. Sonic Advance 2 (USA) ROM; validated by SHA-1 and
 #                   copied into the disposable snapshot as baserom_sa2.gba.
 #   SAR_BUILD_ROOT  Build directory. Default: ${TMPDIR:-/tmp}/sar-stage0.
-#   SAR_TAS_TESTING 1 (default) builds the recorded tape; 0 builds interactive.
+#   SAR_TAS_TESTING 0 (default) builds interactive; 1 embeds the recorded tape.
 #   CC, AR, MAKE    Tool overrides.
 
 set -euo pipefail
@@ -79,7 +79,7 @@ for source in \
     [ -f "$source" ] || die "upstream file missing: $source"
 done
 
-tas=${SAR_TAS_TESTING:-1}
+tas=${SAR_TAS_TESTING:-0}
 case "$tas" in
     0 | 1) ;;
     *) die "SAR_TAS_TESTING must be 0 or 1" ;;
