@@ -141,7 +141,7 @@ cd /tmp/sar-stage0
 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav ./sa2-stage0
 ```
 
-By default this is still software-PPU presentation. `SAR_RENDERER=gl` selects the stage 1 GPU layer path instead, and `SAR_RENDERER=software` selects the software PPU. [tools/stage0/README.md](tools/stage0/README.md) lists the fail-closed checks, the capture helpers and the current limitations, and [tools/stage1/README.md](tools/stage1/README.md) documents the layer path, the switch and the frame comparison.
+By default this is still software-PPU presentation. `SAR_RENDERER=gl` selects the stage 1 GPU layer path instead, and `SAR_RENDERER=software` selects the software PPU. The host accepts a standard SDL game controller alongside the keyboard; [tools/stage0/README.md](tools/stage0/README.md) lists the controller map and the fail-closed checks, and [tools/stage1/README.md](tools/stage1/README.md) documents the layer path, the switch and the frame comparison.
 
 Upstream is unlicensed and its maintainers do not accept LLM-assisted contributions. It stays outside this repository, and nothing here is proposed back.
 
