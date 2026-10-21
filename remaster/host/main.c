@@ -230,6 +230,15 @@ static void SetKey(u16 bit, int down)
     }
 }
 
+static void SetFullscreen(int enable)
+{
+    if (SDL_SetWindowFullscreen(window, enable ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) < 0) {
+        fprintf(stderr, "stage0: fullscreen %s failed: %s\n", enable ? "entry" : "exit", SDL_GetError());
+    } else {
+        printf("stage0: fullscreen %s\n", enable ? "on" : "off");
+    }
+}
+
 static void ProcessEvents(void)
 {
     SDL_Event event;
@@ -276,6 +285,9 @@ static void ProcessEvents(void)
                         break;
                     case SDLK_ESCAPE:
                         running = 0;
+                        break;
+                    case SDLK_F11:
+                        SetFullscreen((SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) == 0);
                         break;
                 }
                 break;
@@ -613,6 +625,19 @@ static void InitVideo(void)
 
     if (!SarPresentInit(window)) {
         Shutdown(1);
+    }
+
+    {
+        const char *fullscreen = getenv("SAR_FULLSCREEN");
+
+        if (fullscreen != NULL && *fullscreen != '\0') {
+            if (strcmp(fullscreen, "1") == 0) {
+                SetFullscreen(1);
+            } else if (strcmp(fullscreen, "0") != 0) {
+                fprintf(stderr, "stage0: SAR_FULLSCREEN must be 0 or 1\n");
+                Shutdown(2);
+            }
+        }
     }
 
     {

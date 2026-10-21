@@ -76,9 +76,9 @@ cd /tmp/sar-stage0
 SAR_SAVE_PATH=/tmp/sar-stage0/sa2.sav ./sa2-stage0
 ```
 
-The window is 426x240 and resizable; Escape or closing the window exits. The
-default key map is the upstream one: C = A, X = B, Return = Start, Backslash =
-Select, S = L, D = R, arrows = D-pad.
+The window is 426x240 and resizable; Escape or closing the window exits, and F11
+toggles desktop fullscreen. The default key map is the upstream one: C = A, X =
+B, Return = Start, Backslash = Select, S = L, D = R, arrows = D-pad.
 
 ## Verification helpers
 
@@ -96,6 +96,7 @@ feature:
 | `SAR_CAPTURE_DIR` | Existing directory for `frame_NNNNNN.ppm` (software PPU) and `frame_NNNNNN.gl.ppm` (GL back buffer). |
 | `SAR_EXIT_AFTER_FRAME` | Exit cleanly after presenting this VBlank. |
 | `SAR_VSYNC` | `1` (default) requests FIFO; `0` disables FIFO and uses the host's 60 Hz clock. Use `0` for recorded capture and audio runs so an occluded window cannot throttle the run. |
+| `SAR_FULLSCREEN` | `1` starts in desktop fullscreen; `0` or unset starts windowed. F11 toggles at run time. |
 | `SAR_OAM_BRIDGE` | `0` disables the canonical OAM bridge. By default the host converts the GBA-native OAM records of the engine into the extended layout before the software PPU draws; see [docs/OAM.md](../../docs/OAM.md). |
 | `SAR_SCRIPT` | `sa1` replays the Sonic Advance 1 capture input schedule instead of the keyboard, for deterministic recorded runs. |
 
