@@ -99,6 +99,10 @@ feature:
 | `SAR_OAM_BRIDGE` | `0` disables the canonical OAM bridge. By default the host converts the GBA-native OAM records of the engine into the extended layout before the software PPU draws; see [docs/OAM.md](../../docs/OAM.md). |
 | `SAR_SCRIPT` | `sa1` replays the Sonic Advance 1 capture input schedule instead of the keyboard, for deterministic recorded runs. |
 
+The capture path is armed only by `SAR_CAPTURE_FRAME`. A run without it does
+not read `SAR_CAPTURE_DIR` and writes no frames, so the normal run above needs
+neither variable.
+
 A tape frame check:
 
 ```sh
