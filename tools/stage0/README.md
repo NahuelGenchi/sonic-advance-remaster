@@ -87,7 +87,7 @@ feature:
 
 | Variable | Meaning |
 | :--- | :--- |
-| `SAR_SAVE_PATH` | Save file path (default `sa2.sav` in the current directory). |
+| `SAR_SAVE_PATH` | Save file path (default `sa1.sav` for Sonic Advance 1 and `sa2.sav` for Sonic Advance 2, in the current directory). |
 | `SAR_KEY_LOG` | Write key-state changes as `frame=N keys=XXXX`; used to prove injected or physical key presses reach `Platform_GetKeyInput`. |
 | `SAR_CAPTURE_FRAME` | VBlank number to capture, or a comma separated list of them. Requires `SAR_CAPTURE_DIR`. |
 | `SAR_RENDERER` | `software` (the default) draws the frame with the upstream software PPU, `gl` draws it with the stage 1 layer path. |

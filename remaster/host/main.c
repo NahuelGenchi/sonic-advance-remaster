@@ -34,6 +34,14 @@
 
 extern void AgbMain(void);
 
+#if (GAME == GAME_SA1)
+#define SAR_GAME_NAME "Sonic Advance"
+#define SAR_DEFAULT_SAVE "sa1.sav"
+#else
+#define SAR_GAME_NAME "Sonic Advance 2"
+#define SAR_DEFAULT_SAVE "sa2.sav"
+#endif
+
 ALIGNED(256) uint16_t gameImage[DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
 static SDL_Window *window;
@@ -142,7 +150,7 @@ static void SaveOpen(void)
     size_t i;
 
     if (path == NULL || *path == '\0') {
-        path = "sa2.sav";
+        path = SAR_DEFAULT_SAVE;
     }
 
     save_file = fopen(path, "r+b");
@@ -582,8 +590,8 @@ static void InitVideo(void)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 
-    window = SDL_CreateWindow("Sonic Advance Remaster - M2 stage 0", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              DISPLAY_WIDTH, DISPLAY_HEIGHT, window_flags);
+    window = SDL_CreateWindow("Sonic Advance Remaster - M2 stage 0 (" SAR_GAME_NAME ")", SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH, DISPLAY_HEIGHT, window_flags);
     if (window == NULL) {
         fprintf(stderr, "stage0: window creation failed: %s\n", SDL_GetError());
         Shutdown(1);
@@ -684,7 +692,7 @@ static void InitVideo(void)
 
 int main(void)
 {
-    printf("stage0: Sonic Advance Remaster host, software PPU presentation\n");
+    printf("stage0: Sonic Advance Remaster host (%s), software PPU presentation\n", SAR_GAME_NAME);
     printf("stage0: frame %dx%d, GL 3.3 core, 60 Hz tick\n", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     run_start = SDL_GetPerformanceCounter();
 
